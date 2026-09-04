@@ -92,6 +92,9 @@ html{-webkit-tap-highlight-color:transparent}
 .modal-header h2{font-size:16px}
 .header-bar h1{font-size:14px;letter-spacing:3px}
 }
+#gameLoading{position:absolute;top:56px;left:0;right:0;bottom:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#1a1510;color:#d4af37;font-size:14px;letter-spacing:3px}
+#gameLoading .spinner{width:34px;height:34px;border:3px solid rgba(212,175,55,0.25);border-top-color:#d4af37;border-radius:50%;animation:glSpin 0.9s linear infinite}
+@keyframes glSpin{to{transform:rotate(360deg)}}
 </style>
 <base target="_blank">
 </head>
@@ -137,6 +140,7 @@ html{-webkit-tap-highlight-color:transparent}
         <h2 id="gameTitle">互动体验</h2>
         <span class="close" onclick="closeGame()">&times;</span>
     </div>
+    <div id="gameLoading"><div class="spinner"></div><div>互动内容加载中...</div></div>
     <iframe id="gameFrame" src="" allowfullscreen></iframe>
 </div>
 
@@ -1393,6 +1397,8 @@ var SCENES = {
 /* ============ 游戏/画卷弹窗 ============ */
 function openGameModal(name, url) {
     if (!url) { alert('该模块即将上线！'); return; }
+    var gl = document.getElementById('gameLoading');
+    if (gl) gl.style.display = 'flex';
     document.getElementById('gameTitle').textContent = name || '互动体验';
     document.getElementById('gameFrame').src = url;
     document.getElementById('gameOverlay').classList.add('active');
@@ -1731,6 +1737,48 @@ function onTouchEnd(e) {
         hint.classList.remove('show');
     });
     apply();
+})();
+
+// ==================== 空闲预加载：切场景/看展品/开互动全部秒开 ====================
+(function setupPreload() {
+    function preloadImg(src) { var im = new Image(); im.src = src; }
+    function preloadQueue(list, step) {
+        list.forEach(function(src, i) {
+            setTimeout(function() { preloadImg(src); }, 600 + i * step);
+        });
+    }
+    function startPreload() {
+        // 1. 其余五张全景图（大厅那张已在加载页里完成）
+        var panos = ['1000027172', '1000027173', '1000027174', '1000027175', '1000027176']
+            .map(function(n) { return 'images/' + n + '.jpg'; });
+        preloadQueue(panos, 500);
+        // 2. 全部展品图
+        var imgs = [];
+        try {
+            Object.keys(SCENES).forEach(function(k) {
+                var hs = SCENES[k] && SCENES[k].hotspots;
+                if (!hs) return;
+                hs.forEach(function(h) {
+                    if (h && h.exhibit && h.exhibit.img) imgs.push(h.exhibit.img);
+                });
+            });
+        } catch (err) {}
+        preloadQueue(imgs, 100);
+        // 3. 互动页面 prefetch（浏览器空闲时抓取，点开秒开）
+        ['games/index.html', 'agent/index.html', 'scroll/index.html'].forEach(function(u) {
+            var l = document.createElement('link');
+            l.rel = 'prefetch';
+            l.href = u;
+            document.head.appendChild(l);
+        });
+    }
+    window.addEventListener('load', function() { setTimeout(startPreload, 1500); });
+    // 游戏 iframe 加载完成 -> 隐藏转圈
+    var gf = document.getElementById('gameFrame');
+    if (gf) gf.addEventListener('load', function() {
+        var gl = document.getElementById('gameLoading');
+        if (gl) gl.style.display = 'none';
+    });
 })();
 
 function loadScene(key) {
