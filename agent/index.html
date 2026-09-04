@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>三杰问对 · AI智能体</title>
+<!-- ════════════════════════════════════════════════════
+     部署配置（只需改这一处）：
+     按 glm-proxy-worker.js 部署好 Cloudflare Worker 后，
+     把下方脚本里的 YOUR_WORKER_URL 替换成你的Worker地址。
+     Key 只存在 Worker 服务端，GitHub 仓库不会泄露。
+     ════════════════════════════════════════════════════ -->
+<style>
+:root{
+  --bg:#f6f1e7; --bg2:#efe8d8; --card:#fffdf7;
+  --ink:#2b2620; --ink2:#6b6152; --line:#e2d8c2;
+  --accent:#a63a2e; --accent-d:#7e2a20; --gold:#b8964e;
+  --song:#46617a; --cheng:#5d8a6a; --xu:#5f74a5; --bot:#8a6a3a;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+  color:var(--ink);background:linear-gradient(180deg,var(--bg),var(--bg2));
+  overflow:hidden;font-size:15px;
+}
+#app{max-width:640px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top) + 8px) 12px calc(env(safe-area-inset-bottom) + 8px)}
+
+/* ===== 顶栏 ===== */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 2px 10px;flex-shrink:0}
+.brand{display:flex;align-items:center;gap:9px;min-width:0}
+.brand-seal{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;
+  color:#f6efdc;background:var(--accent);border:2px double #e8c97e;
+  font-family:"KaiTi","STKaiti",serif;font-size:16px}
+.brand h1{font-family:"KaiTi","STKaiti",serif;font-size:18px;font-weight:normal;letter-spacing:.2em;color:var(--ink)}
+.brand small{display:block;font-size:10.5px;color:var(--ink2);letter-spacing:.12em;margin-top:1px}
+.back-btn{font-size:12.5px;color:var(--accent);text-decoration:none;border:1px solid rgba(166,58,46,.4);
+  padding:7px 11px;border-radius:999px;background:rgba(166,58,46,.06);flex-shrink:0;font-family:inherit}
+.back-btn:active{opacity:.7}
+
+/* ===== 模式切换 ===== */
+.tabs{display:flex;gap:6px;flex-shrink:0;padding-bottom:10px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;white-space:nowrap;font-family:inherit;font-size:13px;letter-spacing:.08em;padding:7px 14px;border-radius:999px;
+  border:1px solid var(--line);background:var(--card);color:var(--ink2);cursor:pointer;transition:all .2s}
+.tab.on{background:var(--ink);color:#f6efdc;border-color:var(--ink)}
+.tab.sage.on{background:var(--accent);border-color:var(--accent)}
+
+/* ===== 贤者栏（三杰分身切换） ===== */
+.sages{display:none;flex-shrink:0;gap:8px;padding-bottom:10px}
+.sages.show{display:flex}
+.sage{flex:1;display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:12px;cursor:pointer;
+  border:1.5px solid var(--line);background:var(--card);transition:all .2s;font-family:inherit}
+.sage .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;flex-shrink:0;
+  font-family:"KaiTi","STKaiti",serif;font-size:13px}
+.sage .nm{text-align:left;line-height:1.25}
+.sage .nm b{display:block;font-size:13px;font-weight:600;color:var(--ink)}
+.sage .nm s{text-decoration:none;font-size:10px;color:var(--ink2)}
+.sage.on.song{border-color:var(--song);background:rgba(70,97,122,.08)}
+.sage.on.cheng{border-color:var(--cheng);background:rgba(93,138,106,.08)}
+.sage.on.xu{border-color:var(--xu);background:rgba(95,116,165,.08)}
+
+/* ===== 聊天区 ===== */
+.guide-line{flex-shrink:0;font-size:11.5px;line-height:1.9;color:var(--ink2);background:rgba(184,150,78,.1);
+  border:1px dashed rgba(184,150,78,.45);border-radius:10px;padding:7px 12px;margin-bottom:9px;letter-spacing:.03em}
+.guide-line b{color:var(--accent-d)}
+.chat{flex:1;min-height:0;overflow-y:auto;padding:6px 2px 12px;display:flex;flex-direction:column;gap:14px;
+  scroll-behavior:smooth}
+.row{display:flex;gap:9px;align-items:flex-start;animation:rise .3s ease}
+.row.user{flex-direction:row-reverse}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;flex-shrink:0;
+  font-family:"KaiTi","STKaiti",serif;font-size:14px;margin-top:2px}
+.av.song{background:var(--song)} .av.cheng{background:var(--cheng)}
+.av.xu{background:var(--xu)} .av.bot{background:var(--bot)} .av.user{background:#c9b98f;color:#5a4a28}
+.body{max-width:78%;min-width:0}
+.wname{font-size:11px;color:var(--ink2);margin-bottom:3px;letter-spacing:.08em}
+.row.user .wname{text-align:right}
+.bubble{padding:10px 13px;border-radius:14px;font-size:14.5px;line-height:1.85;letter-spacing:.02em;
+  word-break:break-word;white-space:pre-wrap}
+.row.ai .bubble{background:var(--card);border:1px solid var(--line);border-top-left-radius:4px;
+  box-shadow:0 1px 3px rgba(90,70,40,.06)}
+.row.user .bubble{background:var(--ink);color:#f6efdc;border-top-right-radius:4px}
+.bubble .who-line{font-family:"KaiTi","STKaiti",serif;color:var(--accent-d);font-size:13.5px;margin-bottom:4px}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.tag{font-size:11px;padding:2px 8px;border-radius:999px;cursor:pointer;font-family:inherit;letter-spacing:.05em}
+.tag.cite{color:var(--accent);border:1px solid rgba(166,58,46,.4);background:rgba(166,58,46,.05)}
+.tag.v1{color:#8a6a1c;border:1px solid var(--gold);background:rgba(184,150,78,.1)}
+.tag.v2{color:#5a6f8a;border:1px solid #8aa0c0;background:rgba(120,150,190,.1)}
+.tag.v3{color:#8a4a42;border:1px dashed #b08078}
+.tag:active{opacity:.6}
+
+/* ===== 引文弹层 ===== */
+.cite-panel{position:fixed;inset:0;z-index:70;display:none;align-items:flex-end;justify-content:center;
+  background:rgba(30,24,16,.5)}
+.cite-panel.open{display:flex}
+.cite-card{width:100%;max-width:560px;max-height:72vh;overflow-y:auto;background:var(--card);
+  border-radius:18px 18px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom));
+  border-top:3px solid var(--accent);animation:up .3s ease}
+@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+.cite-card h3{font-family:"KaiTi","STKaiti",serif;font-size:16px;color:var(--accent-d);letter-spacing:.1em;margin-bottom:10px}
+.cite-card .src{font-size:11.5px;color:var(--gold);margin-top:10px;padding-top:8px;border-top:1px dashed var(--line)}
+.cite-card .body{font-size:14px;line-height:2;font-family:"KaiTi","STKaiti",serif}
+.cite-card .close{display:block;margin:16px auto 0;font-family:inherit;font-size:13px;color:#f6efdc;
+  background:var(--ink);border:none;padding:9px 26px;border-radius:999px}
+
+/* ===== 输入区 ===== */
+.input-bar{flex-shrink:0;display:flex;flex-direction:column;gap:8px}
+.presets{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
+.presets::-webkit-scrollbar{display:none}
+.preset{flex-shrink:0;font-family:inherit;font-size:12px;color:var(--ink2);background:var(--card);
+  border:1px solid var(--line);padding:6px 12px;border-radius:999px}
+.preset:active{opacity:.6}
+.type-row{display:flex;gap:8px}
+.type-row input{flex:1;font-family:inherit;font-size:14.5px;color:var(--ink);background:var(--card);
+  border:1.5px solid var(--line);border-radius:999px;padding:11px 16px;outline:none;transition:border .2s}
+.type-row input:focus{border-color:var(--gold)}
+.send-btn{font-family:inherit;font-size:14px;color:#f6efdc;flex-shrink:0;padding:0 20px;
+  background:var(--accent);border:none;border-radius:999px}
+.send-btn:active{background:var(--accent-d)}
+.tool-row{display:flex;gap:7px}
+.tool-btn{flex:1;font-family:inherit;font-size:12.5px;padding:8px 2px;border-radius:10px;cursor:pointer;
+  border:1px solid var(--line);background:var(--card);color:var(--ink2)}
+.tool-btn:active{opacity:.6}
+
+/* ===== 设置弹窗（在线AI接入） ===== */
+.set-panel{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;
+  background:rgba(30,24,16,.5);padding:24px}
+.set-panel.open{display:flex}
+.set-card{width:100%;max-width:400px;background:var(--card);border-radius:16px;padding:20px 18px;
+  border-top:3px solid var(--bot);animation:rise .25s ease}
+.set-card h3{font-family:"KaiTi","STKaiti",serif;font-size:16px;margin-bottom:4px}
+.set-card .tip{font-size:12px;color:var(--ink2);line-height:1.7;margin-bottom:12px}
+.set-card label{display:block;font-size:12px;color:var(--ink2);margin:9px 0 4px}
+.set-card .prov-sel{width:100%;font-family:inherit;font-size:13.5px;padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;outline:none;background:#fff;margin-bottom:2px}
+.set-card input{width:100%;font-family:inherit;font-size:13.5px;padding:9px 12px;border:1.5px solid var(--line);
+  border-radius:8px;outline:none;background:#fff}
+.set-card input:focus{border-color:var(--gold)}
+.set-card .row-btns{display:flex;gap:8px;margin-top:16px}
+.set-card .row-btns button{flex:1;font-family:inherit;font-size:13px;padding:9px;border-radius:8px;border:none;cursor:pointer}
+.set-card .save{background:var(--ink);color:#f6efdc}
+.set-card .cancel{background:var(--bg2);color:var(--ink2)}
+.net-flag{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:1px 7px;border-radius:999px;margin-left:5px}
+.net-flag.on{color:#3a7a4a;border:1px solid #7ab08a;background:rgba(90,180,110,.1)}
+.net-flag.off{color:#9a5a2a;border:1px solid #c9a189;background:rgba(200,160,130,.1)}
+
+/* ===== 勘界谈判 ===== */
+.neg-overlay{position:fixed;inset:0;z-index:60;display:none;background:linear-gradient(180deg,#2b3644,#1a242e);overflow-y:auto}
+.neg-overlay.open{display:block}
+.neg-box{max-width:520px;margin:0 auto;padding:26px 16px 44px;color:#e9e2d1}
+.neg-box h2{text-align:center;font-family:"KaiTi","STKaiti",serif;font-size:20px;letter-spacing:.3em;color:#f0e6cc;font-weight:normal}
+.neg-sub{text-align:center;font-size:11px;letter-spacing:.2em;color:rgba(240,230,204,.55);margin:5px 0 18px}
+.neg-scene{background:rgba(255,255,255,.06);border:1px solid rgba(143,176,204,.3);border-radius:10px;padding:14px;margin-bottom:12px}
+.neg-scene .round{font-size:11px;letter-spacing:.25em;color:#9fc0dd;margin-bottom:6px}
+.neg-scene .txt{font-size:14px;line-height:1.95}
+.neg-opts{display:flex;flex-direction:column;gap:8px}
+.neg-opt{font-family:inherit;text-align:left;font-size:13.5px;line-height:1.8;color:#e9e2d1;
+  background:rgba(255,255,255,.07);border:1px solid rgba(184,150,78,.45);padding:11px 13px;border-radius:10px}
+.neg-opt:active{background:rgba(184,150,78,.22)}
+.neg-seal{width:96px;height:96px;margin:12px auto;border:3px double var(--gold);border-radius:12px;
+  display:grid;place-items:center;font-family:"KaiTi","STKaiti",serif;font-size:16px;letter-spacing:.15em;color:var(--gold);
+  transform:rotate(-4deg);animation:stampin .7s cubic-bezier(.2,1.4,.4,1)}
+@keyframes stampin{0%{opacity:0;transform:rotate(-4deg) scale(2)}60%{opacity:1;transform:rotate(-6deg) scale(.95)}100%{transform:rotate(-4deg) scale(1)}}
+.stars{color:var(--gold);font-size:18px;letter-spacing:6px;margin:8px 0;text-align:center}
+.neg-score{font-size:13px;line-height:2;color:rgba(240,230,204,.8);text-align:center}
+
+.toast{position:fixed;left:50%;bottom:18%;transform:translate(-50%,24px);z-index:99;opacity:0;
+  padding:9px 18px;border-radius:999px;color:#fff;background:rgba(43,38,32,.92);
+  font-size:13px;transition:all .3s;pointer-events:none;max-width:82vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.typing{display:inline-flex;gap:4px;padding:4px 2px}
+.typing i{width:6px;height:6px;border-radius:50%;background:#b8a888;animation:tp 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes tp{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+.hint-line{text-align:center;font-size:10.5px;color:var(--ink2);padding-top:2px;letter-spacing:.08em}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-seal">问</div>
+      <div>
+        <h1>三杰问对</h1>
+        <small>AI智能体 · 文献锚定<span class="net-flag off" id="netFlag">本地</span></small>
+      </div>
+    </div>
+    <a class="back-btn" href="javascript:void(0)" onclick="backToHall()">返回展厅</a>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab sage on" data-m="bot">💬 博文先生 · 通用问答</button>
+    <button class="tab" data-m="sage">📜 三杰分身 · 史料考据</button>
+    <button class="tab" data-m="hall">三杰同堂</button>
+    <button class="tab" data-m="neg">勘界谈判</button>
+  </nav>
+  <div class="guide-line" id="guideLine">百科闲聊、任何话题 → <b>博文先生</b>（通用大模型·需联网）<br>三杰生平、诗词出处、要文献引证 → <b>三杰分身</b>（本地史料·断网也能用）</div>
+  <nav class="tabs" style="display:none">
+  </nav>
+
+  <div class="sages" id="sages">
+    <button class="sage song" data-p="song"><span class="av song">宋</span><span class="nm"><b>宋小濂</b><s>字铁梅 · 筹边</s></span></button>
+    <button class="sage cheng on" data-p="cheng"><span class="av cheng">成</span><span class="nm"><b>成多禄</b><s>字竹山 · 诗翰</s></span></button>
+    <button class="sage xu" data-p="xu"><span class="av xu">徐</span><span class="nm"><b>徐鼐霖</b><s>字敬宜 · 方志</s></span></button>
+  </div>
+
+  <div class="chat" id="chat"></div>
+
+  <div class="input-bar">
+    <div class="presets" id="presets"></div>
+    <div class="type-row">
+      <input id="q" type="text" placeholder="问什么都行：百科、闲聊、三杰趣事…" autocomplete="off">
+      <button class="send-btn" id="btnSend">发送</button>
+    </div>
+    <div class="tool-row">
+      <button class="tool-btn" id="btnSet">⚙ 接入在线AI</button>
+      <button class="tool-btn" id="btnClear">另起话题</button>
+    </div>
+    <div class="hint-line">通用问答走云端AI（需联网）｜三杰分身依据传世文献作答，附出处与置信印章</div>
+  </div>
+</div>
+
+<div class="cite-panel" id="citePanel"><div class="cite-card" id="citeCard"></div></div>
+
+<div class="set-panel" id="setPanel"><div class="set-card">
+  <h3>接入在线智能体</h3>
+  <div class="tip">默认接入 <b>智谱 GLM-4-Flash</b>（免费·国内直连）。获取Key三步：① 打开 bigmodel.cn 注册/登录 → ② 进入「API Keys」→ ③ 创建并复制密钥，粘贴到下框保存即可。所有访客都能用，与你的电脑无关。也可切换 Ollama 本地模型（仅本机生效）或 Gemini。密钥仅存本机浏览器，调用失败自动回退本地知识库。</div><div class="tip">填入 OpenAI 兼容接口后，「博文先生」将由真实大模型应答，并注入三杰文献上下文；留空或调用失败时自动回退本地知识库。密钥仅保存在本机浏览器。</div>
+  <div class="tip" style="margin-bottom:10px">通用AI由 <b>智谱 GLM-4-Flash</b> 免费提供。推荐通过 <b>Cloudflare Worker 代理</b>接入（Key不公开，访客零配置）：按 <b>glm-proxy-worker.js</b> 部署后，把Worker地址填到下方「API地址」即可。</div>
+  <label>API 地址（填你的Worker地址）</label>
+  <input id="setUrl" placeholder="https://你的-worker.workers.dev">
+  <label>API Key（Worker模式留空）</label>
+  <input id="setKey" type="password" placeholder="仅直连智谱时才需要，会随仓库公开，不推荐">
+  <label>模型（固定）</label>
+  <input id="setModel" readonly value="glm-4-flash" style="background:#f0ead8;color:#8a8070">
+  <div class="row-btns">
+    <button class="cancel" onclick="closeSet()">取消</button>
+    <button class="save" onclick="saveSet()">保存</button>
+  </div>
+</div></div>
+
+<div class="neg-overlay" id="negOverlay"><div class="neg-box" id="negBox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==================== 文献知识库（出处锚定） ==================== */
+var KB = {
+cheng: [
+{id:"qitamu",t:"其塔木故居",tags:"其塔木 故居 故里 家乡 乌拉 童年 出生",v:1,
+src:"成多禄《澹堪诗草·其塔木屯》",
+body:"余家世居于此，在乌拉城北八十五里，去吉林百五十里。东望古原平，孤村夕照明。山光枫叶暗，边影柳条横。沧桑无限感，惆怅故园情。"},
+{id:"shanshui",t:"里中山水",tags:"太平山 千秋岭 抱山 山水 东岭 西岭 风景",v:1,
+src:"成多禄《澹堪诗草·里中山水诗》",
+body:"太平山在余宅东半里许，俗呼曰东岭——村歌自太平，山容自太古。千秋岭在余宅西，俗名西岭——出山见我情，在山见我性。我自有千秋，山灵尔休竞。"},
+{id:"gengzi",t:"庚子塞上",tags:"庚子 塞上 边塞 1900 俄军 战乱 忧国",v:1,
+src:"成多禄《澹堪诗草·庚子塞上作四首》（宋小濂评：苍凉悲感，不减放翁）",
+body:"万帐貔貅大野开，风声怒挟阵云回。天留一线容西上，地尽中原此北来。深宵无限关心事，卷入胡天画角哀。其惓怀家国之心，时时见于篇章。"},
+{id:"tongjian",t:"铜剑歌",tags:"铜剑 怀古 秦 兴亡 咏史 古物",v:1,
+src:"成多禄《澹堪诗草·铜剑歌》",
+body:"阿房三月火不灭，剑气深藏入古穴。岂知龙性终难驯，一声霹雳断厓裂。中有神物三尺强，满身犹浴老蛟血。把酒长吟铜剑歌，八百书生冤一雪。"},
+{id:"xinganling",t:"度兴安岭访宋铁梅",tags:"兴安岭 宋小濂 访友 铁梅 边塞 出使",v:1,
+src:"成多禄《澹堪诗草·度兴安岭访宋铁某观察》",
+body:"云车穿出洞冥冥，形势东来若建瓴。王气遥浮全亚白，长烟直下大荒青。人家水近牛羊老，战地风高虎豹腥。吟得安西都护句，好骑羸马勒新铭。"},
+{id:"hulunliu",t:"呼伦署中留别",tags:"呼伦 留别 离别 宋小濂 友情",v:1,
+src:"成多禄《澹堪诗草·呼伦署中即席留别》",
+body:"三年鸡黍话前期，裁得相逢又唱骊。生死交情同一气，艰难时局上双眉。九秋月色樽中酒，万古边声劫后诗。明日兴安回首处，漫天风雪路逶迤。"},
+{id:"linbie",t:"题宋铁梅小照",tags:"宋小濂 题画 照片 送别 交情 小照",v:1,
+src:"成多禄《澹堪诗草·临别题宋铁某兵备小照四首》",
+body:"驰骤名场记少时，朱霞天半见丰姿。世间多少英雄感，赢得霜华满鬓丝。公入兴安我入吴，临歧握手重踟蹰。它年万树梅华里，明月前身忆此图。"},
+{id:"jisong1",t:"寄宋铁梅都护",tags:"宋小濂 寄友 都护 幕僚 边政",v:1,
+src:"成多禄《澹堪诗草·寄宋铁某都护兼示幕中诸友》",
+body:"汉唐节使重筹边，绝漠驰驱已廿年。短草牛羊通瀚海，大荒鱼鸟辟冰天。寄语八旗游牧长，好将勋业继前贤。"},
+{id:"jisong2",t:"寄宋铁梅兵备",tags:"宋小濂 知己 友情 长诗 忧患",v:1,
+src:"成多禄《澹堪诗草·寄宋铁某兵备》",
+body:"我生鲜兄弟，畏与良友别。古来九漠地，锋镝造豪杰。愿保岁寒心，肝胆照古铁。老梅与孤竹，两地争芳冽。神交贵有道，讵在颜色接。"},
+{id:"hanshan",t:"寒山寺纪游",tags:"寒山寺 苏州 枫桥 旅游 纪游 吴门",v:1,
+src:"成多禄《澹堪诗草·寒山寺纪游四首》",
+body:"四山如沐雨初晴，绿意弯环画里行。惭无驷马高车想，偷过枫桥不敢题。枕边凉梦扇边风，两字新题写闹红。它日北归谈韵事，梦丝犹绕画船中。"},
+{id:"wangshi",t:"网师园虎阜留题",tags:"网师园 苏州 题诗 刻石 虎丘",v:1,
+src:"周树模《寿澹堪六十》诗注（按：虎阜留题，指成多禄在苏州网师园题诗刻石）",
+body:"旧游虎阜留题在，近事鸡林得句新。——君昔游吴，于苏州网师园题诗刻石，吴人传为佳话。"},
+{id:"shufa",t:"书法造诣",tags:"书法 字 楷书 平原 颜真卿 松禅",v:1,
+src:"徐鼐霖《代漫社诸友祭成澹堪文》；陈浏挽诗自注",
+body:"吊公之字，两汉朴茂，六朝雅趣，欧柳褚颜，汇而为一。时贤用笔不能脱宋元窠臼，而君取则平原，睥睨南园，获者矜为瑰宝。"},
+{id:"shiping1",t:"宋小濂评其诗",tags:"诗评 评价 宋小濂 序 性情",v:1,
+src:"宋小濂《澹堪诗草》卷一序",
+body:"澹堪之诗之佳，在乎原本性情。而山川之助，友朋之益，与夫世变之感，不过壮其波澜，藉抒怀抱焉耳。"},
+{id:"shiping2",t:"王树枴评其诗",tags:"诗评 王树枴 千古 评价",v:1,
+src:"王树枴《澹堪诗草》卷三序",
+body:"夫诗为千古必传之诗，实其人为千古必传之人。今天下无诗久矣，非无诗也，无诗人也。若澹堪者高风亮节，不几与渊明、昭谏诸诗人并传千古哉！"},
+{id:"shiping3",t:"徐鼐霖评其诗",tags:"诗评 徐鼐霖 元轻白俗 祭文",v:1,
+src:"徐鼐霖《代漫社诸友祭成澹堪文》",
+body:"吊公之诗，元轻白俗，郊寒岛瘦，一鸣惊人，众著卑陋。"},
+{id:"guandong",t:"关东诗豪",tags:"诗豪 关东 称号 东北 名声",v:1,
+src:"张朝墉《澹堪诗草》卷三序；钱葆青《寿澹堪六十》",
+body:"（东北）自入中国版章，其间孕毓人物，大率以材武雄杰著闻，至若儒雅风流、诗名被海内外者，则吾友成澹堪先生其首著也。时人称关东诗豪。"},
+{id:"suihuafu",t:"守绥化",tags:"绥化 知府 政绩 勤政 爱民 为官",v:1,
+src:"张朝墉《手泽犹存》跋、《吉林成氏家谱》序",
+body:"竹山之守绥化，勤政爱民，得于庭训者实多。光绪三十有一年，朝墉游黑龙江，道经绥化，闻知府成多禄竹山先生以经术饰吏治，廉能之声出乎民舍，余惊且异焉。"},
+{id:"jiaoyou",t:"与宋小濂之交",tags:"宋小濂 交游 知己 刻集 墓志",v:1,
+src:"《成多禄集·交往录》；宋小濂《澹堪诗草》跋",
+body:"与宋小濂交最厚，一生过从甚密，系金兰交。宋为成刻《澹堪诗草》并作序；成多禄为宋小濂书丹墓志铭。千里神交，一朝合并。"},
+{id:"kanke",t:"澹园与澹泊",tags:"澹园 澹堪 号 斋名 明志 淡泊",v:1,
+src:"郭曾炘《题成竹山澹园图》；成多禄《澹堪诗草》",
+body:"取古人澹泊明志之意以颜其斋，自号澹堪。水以澹而始清，云以澹而始闲，花以澹而始幽，人以澹而始高。"},
+{id:"jingkan",t:"选诗精慎",tags:"诗草 刊刻 精慎 删诗 百五十篇",v:1,
+src:"宋小濂《澹堪诗草》卷一跋",
+body:"澹堪另写诗集一通寄来，属为校刊。视原编之本，已刊落十之三四，仅存一百五十篇，不分卷数。澹堪精慎之意，于此可见。"},
+{id:"sanpeng",t:"三杰并称",tags:"三杰 吉林三杰 并称 宋小濂 徐鼐霖",v:1,
+src:"张朝墉《澹翁家训》跋；钱葆青《寿澹堪六十》",
+body:"鸡林三人杰，时人目宋铁梅、徐敬宜、成澹堪为吉林三杰，澹翁实翘楚。三友辽东号一龙，屹如太华峙三峰。"}
+],
+song: [
+{id:"zhuan",t:"生平概要",tags:"生平 简介 一生 履历 字 号 止园",v:1,
+src:"徐鼐霖《永吉县志》卷三十九《宋小濂传》",
+body:"宋小濂，字友梅，一字铁梅。父永瑞以医游吉林，遂为吉林人。少孤力学，以诸生起家，入将军幕府。历官黑龙江铁路交涉局总办、民政使，擢巡抚；民国改黑龙江都督兼民政长。晚年卜宅后海，颜所居曰止园。"},
+{id:"sanheng",t:"三硬先生",tags:"三硬 评价 硬诗 硬字 硬事 张锡銮",v:1,
+src:"《吉林英杰集·宋小濂集》前言引时人张锡銮语",
+body:"时人张锡銮称其为作硬诗、写硬字、行硬事的「三硬先生」。公之伟烈，彰于国防——履虎之尾，而不敢伤；不兵而武，返我侵土。"},
+{id:"mohe",t:"漠河金矿十年",tags:"漠河 金矿 李金镛 袁大化 北极 边情",v:1,
+src:"徐鼐霖《永吉县志·宋小濂传》",
+body:"金镛创办黑龙江漠河金厂，招小濂治文书，袁大化继任，均倚重之。漠河濒黑龙江南岸，逾江则俄境，为国东北极边。小濂居之十年，国势敌情，罔不周悉，自谓一生致用之学，皆积于此。"},
+{id:"tiejiao",t:"铁路交涉一百四十余次",tags:"铁路 中东铁路 霍尔瓦特 交涉 合同 地亩 林区",v:1,
+src:"徐鼐霖《永吉县志·宋小濂传》",
+body:"东省铁路占地至二百万亩，林区沿铁路广六十里、长六百里。小濂拒局费不受，议废前约，与俄人相持两年余，会议一百四十余次，卒改订新合同，收回地亩过半、林区十九，增加地租木煤税。"},
+{id:"kanjie",t:"勘界与满洲里",tags:"勘界 满洲里 国界 条约 山川形势 儒达诺甫",v:1,
+src:"王树栴《宋公墓志铭》；《清实录·宣统政纪》卷六十七",
+body:"中俄国界自雍正五年后未查勘。小濂先自履勘，复同俄员会勘，炎天雪地，历寒暑者再。俄人必欲攘满洲里车站为己有，小濂坚执条约，证以山川形势，援引各种图说，初终不稍让。卒将俄路所据之满洲里划归我界。"},
+{id:"shierce",t:"东三省善后十二策",tags:"十二策 袁世凯 庚子 善后 上书 北洋",v:1,
+src:"徐鼐霖《永吉县志·宋小濂传》",
+body:"庚子乱作，金厂为俄人所踞，继以日、俄之役，外势愈张。小濂以东三省善后十二策上北洋大臣、直隶总督袁世凯，世凯韪其议，上之枢廷，分咨东三省将军次第施行。"},
+{id:"hulun",t:"呼伦贝尔边务",tags:"呼伦贝尔 副都统 卡伦 屯垦 边务 调查报告",v:1,
+src:"徐鼐霖《永吉县志·宋小濂传》；《呼伦贝尔边务调查报告书》序",
+body:"迁呼伦贝尔副都统，设学、垦荒、渔牧、林矿诸事逐渐办治。复沿边卡伦，俄人越境垦牧、渔猎、伐木、采金者，立禁之，边境安谧。亲履勘察一千五百余里国境线，分十三门著为调查报告。"},
+{id:"dujun",t:"黑龙江都督",tags:"都督 民政长 民国 巡抚 周树模 俄人",v:1,
+src:"徐鼐霖《永吉县志·宋小濂传》",
+body:"武昌事起，呼伦蒙旗独立，巡抚周树模乞休。时小濂已迁民政司使，朝旨署黑龙江巡抚。民国肇兴，改黑龙江都督兼民政长，抚军辑民，不多事更张。俄人惎之深，借端威胁政府去小濂。"},
+{id:"zhongdong",t:"督办中东铁路",tags:"中东铁路 督办 1919 收回 路政 合同",v:1,
+src:"徐鼐霖《永吉县志·宋小濂传》",
+body:"八年（1919），督办中东铁路。甫收回，整理路政，续订铁路合同协约，各国翕然无异议，俄人亦不能为之难也。逾年辞职回京，以书史文字自娱。"},
+{id:"dongdao",t:"东道集留别诗",tags:"东道集 留别 诗 离别 铁路俱乐部 二十五周年",v:1,
+src:"宋小濂《东道集》",
+body:"人生离别多，聚散何草草。悲欢随境迁，情至安能矫。世道正艰虞，诸君求自保。好乐慎勿荒，所争在分秒。"},
+{id:"xunyue",t:"巡阅东省铁路",tags:"巡阅 铁路 整顿 燃料 煤炭 林业 报告",v:1,
+src:"宋小濂《巡阅东省铁路纪略》",
+body:"督办任内亲莅巡视全线：机车燃料亟宜改用煤炭，以节糜费而杜火灾；与俄总办相持，会议至一百四十余次，卒就我范围。两年间喜见康庄道——今日我将去，喜见康庄道。"},
+{id:"diaocha",t:"改订俄约调查",tags:"俄约 调查 纲目 界务 商务 税务 条约",v:1,
+src:"宋小濂《改订俄约调查纲目表》",
+body:"宣统二年奉饬预筹修改中俄陆路通商条约。分四类：曰界务、商务、税务、杂务，摘其大纲设为问题，注明调查区域，责成各员逐款调查，以资改议张本。"},
+{id:"yu_cheng",t:"为成多禄刻集",tags:"成多禄 刻集 校刊 友情 诗草",v:1,
+src:"宋小濂《澹堪诗草》卷一跋",
+body:"冬间澹堪另写诗集一通寄来，属为校刊。余阅其诗，已刊落十之三四，仅存一百五十篇。澹堪精慎之意，于此可见。故乐为校刊之役，计为文一万零五百五十有二。"},
+{id:"pingcheng",t:"评成多禄诗",tags:"成多禄 诗评 澹堪 原本性情",v:1,
+src:"宋小濂《澹堪诗草》卷一序",
+body:"吾吉地处东陲，文化开最晚，二百年来未有以诗鸣者。澹堪独能孤怀远迈，逸想横飞，抗衡中原，未遑多让，洵足壮江山之色，增吾党之光矣。"}
+],
+xu: [
+{id:"shengping",t:"生平概要",tags:"生平 简介 履历 字 号 憩园 吉林省长",v:1,
+src:"《徐鼐霖集》前言；《吉林英杰集》相关记载",
+body:"徐鼐霖，字敬宜，号憩园，吉林永吉人。以拔贡入仕，历官大赉厅通判、黑龙江民政使，尝代理巡抚；民初任吉林省长，主纂乡邦文献。晚岁寓居京邸，坚拒伪职。"},
+{id:"choubian",t:"筹边刍言",tags:"筹边 蒙藏 经营 边防 列强 保存中国",v:1,
+src:"徐鼐霖《筹边刍言——经营蒙藏以保存中国》",
+body:"所著《筹边刍言》纵论蒙藏情势与列强环伺之局，主张经营蒙藏、屯垦实边、以固疆圉。为清末东北边防重要策论文献。"},
+{id:"jicheng",t:"祭成澹堪文",tags:"成多禄 祭文 挽 漫社 评价 诗书",v:1,
+src:"徐鼐霖《代漫社诸友祭成澹堪文》",
+body:"公生于世六十有六年。家有田圃，架有诗书，亦耕亦读，贤声载途。吊公之诗，元轻白俗，郊寒岛瘦，一鸣惊人；吊公之字，两汉朴茂，六朝雅趣，欧柳褚颜，汇而为一。"},
+{id:"yongji",t:"主纂永吉县志",tags:"永吉县志 方志 总纂 五十卷 吉林",v:1,
+src:"《徐鼐霖集》；《永吉县志》",
+body:"1927年出任《永吉县志》总纂，历时两年完稿，全书五十卷、约八十万字，被誉为吉林省旧志之佳。志中名山、艺文、人物诸卷，三杰事迹赖以存焉。"},
+{id:"shudu",t:"致徐世昌书牍",tags:"书牍 徐世昌 菊人 筹边 垦务 商埠 信",v:1,
+src:"《徐鼐霖集》文集",
+body:"任黑龙江民政使前后，致徐菊人督部书牍数十函，论迁民实边、自开商埠、铁路交涉、流通圜法诸要政，皆据实直陈，洞见症结。"},
+{id:"shufa2",t:"书法与文翰",tags:"书法 秀劲 文翰 工书 评价",v:1,
+src:"《徐鼐霖集》前言及相关方志记载",
+body:"精于文史，尤工书法，文翰秀劲，时人重之。著有《憩园诗草》《筹边刍言》等。"},
+{id:"dalaifu",t:"大赉厅通判",tags:"大赉 通判 嫩江 履历 黑龙江",v:2,
+src:"《徐鼐霖集》前言；《宋小濂传》附见",
+body:"历官大赉厅通判，于嫩江流域民情吏治多有历练，后累迁至黑龙江民政使。此段履历方志所载甚略。"},
+{id:"manshe",t:"漫社与嘤社",tags:"漫社 嘤社 诗社 北京 结社 唱和",v:1,
+src:"张朝墉《哭澹堪》（按：两社指1921年漫社、1924年嘤社）",
+body:"辛酉孟秋，漫社伊始，龙战纷纭，鸡鸣不已。与成多禄同入漫社、嘤社，京华耆旧，诗酒唱和。"},
+{id:"songmuzhi",t:"为宋小濂篆盖",tags:"宋小濂 墓志 篆盖 交情 王树栴",v:1,
+src:"王树栴《宋公墓志铭》署款",
+body:"《宋公墓志铭》新城王树栴撰文，吉林徐鼐霖篆盖，吉林成多禄书丹——一篇墓志，三杰合璧，亦一时之佳话。"},
+{id:"guanshan",t:"过山海关",tags:"过山海关 诗 关塞 旅行",v:2,
+src:"《徐鼐霖集》诗集目录",
+body:"集中有《过山海关》七律、《巡边有感》七绝、《止园落成》五古诸作，多关塞佗偬之音。全帙今藏吉林省图书馆，已影印行世。"}
+]
+};
+
+var PERSONA = {
+song:{name:"宋小濂",zi:"铁梅",color:"#46617a",
+hello:"君问我乎？某半生心事在筹边，黑水黄沙二十年。有何见教，但说无妨。",
+nohit:"此事文献未载，某不敢妄言。足下或可问我漠河、铁路交涉、勘界诸端——此皆某亲历，信而有征。"},
+cheng:{name:"成多禄",zi:"竹山",color:"#5d8a6a",
+hello:"君自远方来，蓬门今始为君开。某其塔木一老农耳，惟诗与字差堪语人。",
+nohit:"此节某集中未及，不敢妄对。若论诗、论兴安岭风雪、论与铁梅别绪，某当有以应君。"},
+xu:{name:"徐鼐霖",zi:"敬宜",color:"#5f74a5",
+hello:"憩园叟在此。方志之余，得与君语，亦一乐也。问学之事，某当谨据文献以答。",
+nohit:"方志无征，某未敢悬断。若询筹边、县志、漫社旧事，某略有所知。"}
+};
+
+var LOCATIONS = {
+shuangyang:{p:"song",t:"双阳故里",tags:"双阳 故里 齐家 家乡"},
+jiutai:{p:"cheng",t:"其塔木",tags:"其塔木 乌拉 故居"},
+yongji:{p:"xu",t:"永吉",tags:"永吉 县志 故乡"},
+qiqihaer:{p:"song",t:"齐齐哈尔幕府",tags:"齐齐哈尔 程德全 幕府 卜奎"},
+mohe:{p:"song",t:"漠河金矿",tags:"漠河 金矿 北极"},
+hulunbeier:{p:"song",t:"呼伦贝尔",tags:"呼伦贝尔 副都统 卡伦 边务"},
+suihua:{p:"cheng",t:"绥化",tags:"绥化 知府 政绩"},
+dalai:{p:"xu",t:"大赉",tags:"大赉 通判 嫩江"},
+haerbin:{p:"song",t:"哈尔滨铁路交涉",tags:"哈尔滨 铁路 交涉局 霍尔瓦特"},
+jilin:{p:"xu",t:"吉林省城",tags:"吉林 省长 永吉 省会"},
+zhiyuan:{p:"song",t:"止园",tags:"止园 晚号 后海 隐居"},
+danyuan:{p:"cheng",t:"澹园",tags:"澹园 澹堪 斋名"},
+qiyuan:{p:"xu",t:"憩园",tags:"憩园 敬宜 斋名"},
+suzhou:{p:"cheng",t:"吴门网师园",tags:"苏州 网师园 虎丘 留题"},
+hanshansi:{p:"cheng",t:"寒山寺",tags:"寒山寺 枫桥 纪游"}
+};
+
+/* ==================== 通识模式知识（基本问题 + 三杰导览） ==================== */
+var FAQ = [
+{k:["你是谁","是什么","介绍","谁","智能体","机器人"],a:"我是「博文先生」，吉林三杰数字展馆的通识智能体。我可以回答关于宋小濂、成多禄、徐鼐霖三位先贤的提问，也可以聊聊这座展馆本身。若想让三杰亲自作答，请点上方「三杰分身」。"},
+{k:["三杰","吉林三杰","是谁","哪三位"],a:"「吉林三杰」指清末民初吉林籍三位名贤：宋小濂（字铁梅，官至黑龙江都督，督办中东铁路）、成多禄（字竹山，诗人书法家，时称关东诗豪）、徐鼐霖（字敬宜，曾任吉林省长，主纂《永吉县志》）。三人里居相近、交谊最深，时人目为「鸡林三人杰」。〔张朝墉《澹翁家训》跋〕"},
+{k:["展馆","展厅","博物馆","怎么看","玩","功能","入口","使用","介绍"],a:"本展馆由四部分组成：① 展厅大厅——3D漫游各展区，点击发光热点；② 三杰行迹画卷——十五处足迹地图，每地配有历史影像，可全屏观赏、点「问先贤」召唤AI讲解；③ 古籍残卷修复、司南问径两款互动游戏；④ 本智能体。印章成就存在你的浏览器里，各游戏互通。"},
+{k:["宋小濂","铁梅","铁某"],a:"宋小濂（1860—1926），字铁梅，吉林永吉人。少孤力学，入李金镛幕治漠河金矿文书十年；后督办东省铁路交涉，与俄人会议一百四十余次，收回地亩过半、林区十九；亲勘中俄国界，卒将满洲里划归我界。民国任黑龙江都督兼民政长，晚年督办中东铁路。时人称之为「三硬先生」——作硬诗、写硬字、行硬事。"},
+{k:["成多禄","竹山","澹堪"],a:"成多禄（1864—1928），字竹山，号澹堪，吉林其塔木人。光绪拔贡，官绥化知府，勤政爱民；工诗善书，推为「关东诗豪」，曾在苏州网师园题诗刻石。与宋小濂、徐鼐霖并称吉林三杰。其诗「原本性情」，自刻《澹堪诗草》仅存一百五十篇，精慎如此。"},
+{k:["徐鼐霖","敬宜","憩园"],a:"徐鼐霖（1865—1940），字敬宜，号憩园，吉林永吉人。历官大赉厅通判、黑龙江民政使，尝代理巡抚；民初任吉林省长，主纂《永吉县志》五十卷，被誉为吉林省旧志之佳。著有《筹边刍言》《憩园诗草》，书法秀劲，时人重之。"},
+{k:["关系","交情","友谊","朋友","交情如何"],a:"三人交谊终身不渝：宋小濂为成多禄校刻《澹堪诗草》并作序；成多禄度兴安岭千里访宋，有「老梅与孤竹，两地争芳冽」之句；王树栴撰《宋公墓志铭》，徐鼐霖篆盖、成多禄书丹——一篇墓志，三杰合璧。"},
+{k:["评价","地位","影响","贡献","成就"],a:"宋小濂以筹边交涉著，王树栴铭其墓曰「履虎之尾，而不敢伤；不兵而武，返我侵土」；成多禄以诗书名海内，王树枴谓其「高风亮节，与渊明、昭谏诸诗人并传千古」；徐鼐霖以方志与筹边策论存史。三人事迹主要赖《宋小濂集》《成多禄集》《徐鼐霖集》及《永吉县志》传世。"},
+{k:["资料","文献","来源","出处","依据","可信"],a:"本智能体的三杰分身全部语料出自：《宋小濂集》（吉林文史出版社）、《成多禄集》（长白丛书）、《徐鼐霖集》及民国《永吉县志》。每条回答附「出处」可查看原文片段，并以「信而有征 / 理或如此 / 存疑待考」三级印章标注置信度。"}
+];
+</script>
+
+<script>
+/* ==================== 核心逻辑 ==================== */
+var chatEl=document.getElementById('chat'), qEl=document.getElementById('q');
+var mode='bot', cur='cheng', greeted={}, toastT=0;
+var SET={prov:'glm',url:'https://jilin3j-glm.yyyyyuan-8.workers.dev',model:'glm-4-flash',key:''};
+var PROVIDERS={
+pollinations:{url:'https://text.pollinations.ai/',model:'openai',needKey:false,hint:'免注册免Key·公共免费'},
+ollama:{url:'http://localhost:11434/v1/chat/completions',model:'qwen2.5:7b',needKey:false,hint:'本地模型无需填写'},
+glm:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',needKey:true,hint:'bigmodel.cn → API Keys → 创建'},
+gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash',needKey:true,hint:'aistudio.google.com 免费申请'},
+custom:{url:'',model:'',needKey:true,hint:'sk-...'}};
+
+function hasKey(){return !!SET.url&&SET.url.indexOf('YOUR_')===-1;}
+
+function toast(s){var t=document.getElementById('toast');t.textContent=s;t.classList.add('show');
+clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show')},2200);}
+function backToHall(){if(window.parent!==window){window.parent.postMessage('closeGame','*');}else{location.href='../index.html';}}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ---------- 检索 ---------- */
+var STOP=["的","了","是","什么","怎么","谁","我","你","他","吗","呢","吧","请问","讲讲","说说","关于","告诉","一下","我们","知道","介绍","为什么","如何","先生","大人","阁下","有关","这个","那个","哪里","哪些","什么时候","怎么","能","会","都","也","还","在","有","和","与","及","或","吗","么","把","被","让","向","从","到","于","对","可以","能够","告诉","说说"];
+function tokenize(q){
+  var out=[],clean=q.replace(/[^\u4e00-\u9fa5]/g,'');
+  for(var i=0;i+1<clean.length;i++){var g=clean.substr(i,2);if(!STOP.includes(g))out.push(g);}
+  for(var j=0;j<clean.length;j++){var c=clean[j];if(c.length===1&&!STOP.includes(c))out.push(c);}
+  return out;
+}
+function search(person,q,extra){
+  var toks=tokenize(q).concat(extra||[]);
+  if(!toks.length)return[];
+  return KB[person].map(function(e){
+    var hay=e.t+' '+e.tags+' '+e.body,s=0;
+    toks.forEach(function(t){if(hay.indexOf(t)!==-1)s+=(e.tags.indexOf(t)!==-1?3:1)*(t.length>1?1.5:1);});
+    return {e:e,s:s};
+  }).filter(function(x){return x.s>1.6;}).sort(function(a,b){return b.s-a.s;}).slice(0,3).map(function(x){return x.e;});
+}
+
+/* ---------- 聊天渲染 ---------- */
+var AVN={song:'宋',cheng:'成',xu:'徐',bot:'博',user:'我'};
+function addRow(who,html,meta){
+  var r=document.createElement('div');
+  r.className='row '+(who==='user'?'user':'ai');
+  var av='<div class="av '+who+'">'+AVN[who]+'</div>';
+  var body='<div class="body"><div class="wname">'+WNAME[who]+'</div><div class="bubble">'+html+'</div>'+(meta||'')+'</div>';
+  r.innerHTML=av+body;
+  chatEl.appendChild(r);chatEl.scrollTop=chatEl.scrollHeight;
+  bindCites(r);return r;
+}
+var WNAME={user:'访客',bot:'博文先生',song:'宋小濂 · 铁梅',cheng:'成多禄 · 竹山',xu:'徐鼐霖 · 敬宜'};
+function metaHtml(cites,v){
+  var h='<div class="meta">';
+  (cites||[]).forEach(function(c){h+='<span class="tag cite" data-cite="'+c.id+'" data-p="'+c.p+'">出处 · '+esc(c.t)+'</span>';});
+  if(v){h+='<span class="tag v'+v+'">'+(v===1?'◆ 信而有征':v===2?'◇ 理或如此':'? 存疑待考')+'</span>';}
+  return h+'</div>';
+}
+function bindCites(root){
+  root.querySelectorAll('.tag.cite').forEach(function(el){
+    el.addEventListener('click',function(){
+      var id=this.dataset.cite,p=this.dataset.p;
+      var e=null;for(var i=0;i<KB[p].length;i++)if(KB[p][i].id===id)e=KB[p][i];
+      if(e)showCite(e);
+    });
+  });
+}
+function showCite(e){
+  document.getElementById('citeCard').innerHTML=
+    '<h3>'+esc(e.t)+'</h3><div class="body">'+esc(e.body)+'</div>'+
+    '<div class="src">出处：'+esc(e.src)+'</div>'+
+    '<button class="close" onclick="closeCite()">收 卷</button>';
+  document.getElementById('citePanel').classList.add('open');
+}
+function closeCite(){document.getElementById('citePanel').classList.remove('open');}
+document.getElementById('citePanel').addEventListener('click',function(e){if(e.target===this)closeCite();});
+function showTyping(who){
+  return addRow(who,'<span class="typing"><i></i><i></i><i></i></span>');
+}
+function removeTyping(t){if(t&&t.parentNode)t.parentNode.removeChild(t);}
+
+/* ---------- 三杰回答 ---------- */
+function genSage(p,q,extra){
+  var hits=search(p,q,extra);
+  if(!hits.length)return{text:PERSONA[p].nohit,cites:[],v:3};
+  var m=hits[0],lead={'song':'此事某亲历者三——','cheng':'此事某有诗志之——','xu':'此事方志有征——'}[p]||'';
+  var text=lead+m.body;
+  if(hits.length>1&&m.body.length<160)text+='\n\n又，'+hits[1].body;
+  var v=1;hits.forEach(function(e){if(e.v>v)v=e.v;});
+  return {text:text,cites:hits.slice(0,3).map(function(e){return{id:e.id,p:p,t:e.t}}),v:v};
+}
+function sageSay(p,q){
+  if(!greeted[p]){greeted[p]=1;addRow(p,'<div class="who-line">'+esc(PERSONA[p].hello)+'</div>');}
+  var t=showTyping(p);
+  setTimeout(function(){
+    removeTyping(t);
+    var a=genSage(p,q);
+    addRow(p,esc(a.text),metaHtml(a.cites,a.v));
+  },550);
+}
+
+/* ---------- 通识Bot ---------- */
+function botLocal(q){
+  var best=null,bs=0;
+  FAQ.forEach(function(f){
+    var s=0;f.k.forEach(function(k){if(q.indexOf(k)!==-1)s+=k.length;});
+    if(s>bs){bs=s;best=f;}
+  });
+  if(best&&bs>=2)return best.a;
+  var toks=tokenize(q),all=[];
+  ['song','cheng','xu'].forEach(function(p){search(p,q).forEach(function(e){all.push({e:e,p:p});});});
+  if(all.length){
+    all.sort(function(a,b){return 0;});
+    var lines=all.slice(0,2).map(function(x){
+      var W={song:'铁梅公',cheng:'竹山公',xu:'敬宜公'}[x.p];
+      return '关于「'+x.e.t+'」：'+x.e.body;
+    });
+    return '据文献所载——\n\n'+lines.join('\n\n')+'\n\n（详情可切至「三杰分身」与本人对谈，查看逐条出处。）';
+  }
+  return '这个问题超出了本地文献库的范围。我目前可以：聊聊吉林三杰的生平交游、带你逛展馆；也可以点下方「⚙ 接入在线AI」，接入真实大模型后我就什么都能答了。';
+}
+var SYS_PROMPT='你是「博文先生」，吉林三杰数字展馆的智能导览员。回答要求：1) 涉及宋小濂、成多禄、徐鼐霖的问题，依据以下文献知识作答并注明出处；2) 其他问题正常回答，简洁友好；3) 不确定就说不知道。文献知识：';
+function botAnswer(q){
+  addRow('user',esc(q));
+  if(!greeted.bot){greeted.bot=1;addRow('bot',esc('你好，我是博文先生。三杰之事、展馆之游，皆可问我。'));}
+  var online=hasKey();
+  if(online){
+    var t=showTyping('bot');
+    onlineAsk(q).then(function(a){
+      removeTyping(t);addRow('bot',esc(a));
+    }).catch(function(){
+      removeTyping(t);
+      toast('网络连接失败：已切换本地文献模式');
+      addRow('bot',esc(botLocal(q)),'<div class="meta"><span class="tag v3">ⓘ 断网中：三杰史料照答；百科闲聊等通用问题，请联网后重试</span></div>');
+    });
+  }else{
+    if(!window._guided&&SET.prov==='pollinations'){
+      window._guided=1;
+      toast('公共AI线路暂不可达。免费升级：⚙设置里选「GLM-4-Flash」（bigmodel.cn注册免费Key）或「Ollama本地模型」');
+    }
+    var t2=showTyping('bot');
+    setTimeout(function(){removeTyping(t2);addRow('bot',esc(botLocal(q)));},450);
+  }
+}
+function onlineAsk(q){
+  var kbSummary='';
+  ['song','cheng','xu'].forEach(function(p){KB[p].forEach(function(e){kbSummary+='【'+e.t+'】'+e.body.slice(0,80)+'（'+e.src+'）';});});
+  if(SET.prov==='pollinations'){
+    var prompt='你是「博文先生」，吉林三杰数字展馆的智能导览员。回答要求：涉及宋小濂、成多禄、徐鼐霖的问题依据以下文献知识作答（'+kbSummary.slice(0,2000)+'）；其他问题正常简洁友好地回答，不超过200字。\n\n访客问题：'+q;
+    var c2=new AbortController();
+    var t3=setTimeout(function(){c2.abort();},25000);
+    return fetch(SET.url+encodeURIComponent(prompt),{signal:c2.signal}).then(function(r){
+      clearTimeout(t3);
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      return r.text();
+    }).then(function(txt){var m=(txt||'').trim();if(m.indexOf('<think>')!==-1)m=m.replace(/<think>[\s\S]*?<\/think>/g,'').trim();if(!m)throw new Error('empty');return m;})
+    .catch(function(e){clearTimeout(t3);throw e;});
+  }
+  var headers={'Content-Type':'application/json'};
+  if(SET.key)headers['Authorization']='Bearer '+SET.key;
+  var ctrl=new AbortController();
+  var timer=setTimeout(function(){ctrl.abort();},20000);
+  return fetch(SET.url,{signal:ctrl.signal,
+    method:'POST',
+    headers:headers,
+    body:JSON.stringify({model:SET.model||'gpt-4o-mini',messages:[
+      {role:'system',content:SYS_PROMPT+kbSummary.slice(0,3000)},
+      {role:'user',content:q}],temperature:.6,max_tokens:800})
+  }).then(function(r){
+    clearTimeout(timer);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.text();
+  }).then(function(txt){
+    var m=null;
+    try{var d=JSON.parse(txt);m=d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content;}catch(e){}
+    if(!m)m=(txt||'').trim();
+    if(m.indexOf('<think>')!==-1)m=m.replace(/<think>[\s\S]*?<\/think>/g,'').trim();
+    if(!m)throw new Error('empty');
+    return m;
+  }).catch(function(e){
+    clearTimeout(timer);
+    throw e;
+  });
+}
+
+/* ---------- 模式切换 ---------- */
+var TITLES={bot:'向博文先生发问…',sage:'向三杰发问…',hall:'问三杰一个问题，三人各答…'};
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.dataset.m===m)});
+  document.getElementById('sages').classList.toggle('show',m==='sage');
+  qEl.placeholder=TITLES[m]||'发问…';
+  renderPresets();
+  if(m==='neg'){startNeg();setMode('sage');return;}
+  if(m==='bot'&&!greeted.bot){greeted.bot=1;addRow('bot',esc('你好，我是博文先生，上知天文下知地理的通用AI。\n\n什么话题都能聊——百科知识、文学历史、生活常识、甚至帮你写几句诗。\n\n若查三杰的正式史料（要出处引证那种），点上方「三杰分身」更严谨。'));}
+}
+document.querySelectorAll('.tab').forEach(function(t){t.addEventListener('click',function(){setMode(this.dataset.m);});});
+document.querySelectorAll('.sage').forEach(function(el){
+  el.addEventListener('click',function(){
+    document.querySelectorAll('.sage').forEach(function(x){x.classList.remove('on')});
+    this.classList.add('on');cur=this.dataset.p;
+  });
+});
+
+/* ---------- 发送 ---------- */
+function ask(){
+  var q=qEl.value.trim();
+  if(!q){toast('请先写下所问');return;}
+  qEl.value='';
+  if(mode==='bot'){botAnswer(q);return;}
+  addRow('user',esc(q));
+  if(mode==='hall'){['cheng','song','xu'].forEach(function(p,i){setTimeout(function(){sageSay(p,q);},i*750);});}
+  else{sageSay(cur,q);}
+}
+document.getElementById('btnSend').addEventListener('click',ask);
+qEl.addEventListener('keydown',function(e){if(e.key==='Enter')ask();});
+document.getElementById('btnClear').addEventListener('click',function(){
+  chatEl.innerHTML='';greeted={};toast('已另起话题');
+  if(mode==='bot'){greeted.bot=1;addRow('bot',esc('你好，我是博文先生。请讲。'));}
+});
+
+/* ---------- 预设 ---------- */
+var PRESETS={
+bot:["吉林三杰是谁？","三人的交情如何？","这座展馆怎么逛？","宋小濂凭什么称三硬先生？","时人如何评价成多禄的诗？"],
+cheng:["你一生最得意的事？","与宋小濂的交情","庚子年你在何处？","书法何所师法？","为何号澹堪？"],
+song:["漠河十年如何度过？","铁路交涉一百四十余次","满洲里勘界始末","三硬先生何来？","为何晚号止园？"],
+xu:["筹边刍言主旨何在？","主纂永吉县志始末","祭澹堪文因何而作？","你的书法师承？"]
+};
+function renderPresets(){
+  var list = mode==='bot'?PRESETS.bot : (mode==='hall'?PRESETS.bot : PRESETS[cur]);
+  var box=document.getElementById('presets');box.innerHTML='';
+  list.forEach(function(t){
+    var b=document.createElement('button');b.className='preset';b.textContent=t;
+    b.addEventListener('click',function(){qEl.value=t;ask();});
+    box.appendChild(b);
+  });
+}
+
+/* ---------- 设置 ---------- */
+function openSet(){
+  document.getElementById('setKey').value=SET.key;
+  document.getElementById('setUrl').value=SET.url.indexOf('YOUR_')===-1?SET.url:'';
+  document.getElementById('setPanel').classList.add('open');
+}
+
+function closeSet(){document.getElementById('setPanel').classList.remove('open');}
+function saveSet(){
+  var k=document.getElementById('setKey').value.trim();
+  var u=document.getElementById('setUrl').value.trim();
+  SET={prov:'glm',
+       url:u||'YOUR_WORKER_URL',
+       key:k,
+       model:'glm-4-flash'};
+  try{localStorage.setItem('jl3j_agent_api',JSON.stringify(SET));}catch(e){}
+  updateFlag();closeSet();
+  toast(hasKey()?'通用AI已连接':'未填写地址，当前为本地模式');
+}
+function updateFlag(){
+  var f=document.getElementById('netFlag');
+  var online=hasKey();
+  f.textContent=online?'通用AI已连接':'本地模式';
+  f.className=online?'net-flag on':'net-flag off';
+}
+document.getElementById('btnSet').addEventListener('click',openSet);
+try{var _s=JSON.parse(localStorage.getItem('jl3j_agent_api')||'null');if(_s)SET={prov:_s.prov||'',url:_s.url||'',key:_s.key||'',model:_s.model||''};}catch(e){}
+updateFlag();
+
+/* ---------- 画卷召唤 ---------- */
+function locationSummon(nodeId){
+  var L=LOCATIONS[nodeId];if(!L){toast('此地暂未收录');return;}
+  setMode('sage');
+  document.querySelectorAll('.sage').forEach(function(x){x.classList.toggle('on',x.dataset.p===L.p)});
+  cur=L.p;
+  var q='此地'+L.t+'有何往事？';
+  addRow('user',esc('【行迹画卷 · '+L.t+'】此地有何往事？'));
+  var hits=search(cur,L.t,L.tags.split(' '));
+  var a=genSage(cur,L.t,hits.length?hits:null);
+  var t=showTyping(cur);
+  setTimeout(function(){removeTyping(t);
+    addRow(cur,esc('君至'+L.t+'乎？此地某所素稔。\n\n')+esc(a.cites.length?a.text:PERSONA[cur].nohit),metaHtml(a.cites,a.cites.length?a.v:3));
+  },650);
+}
+window.addEventListener('message',function(e){if(e.data&&e.data.type==='summon'&&e.data.node)locationSummon(e.data.node);});
+
+/* ---------- 勘界谈判 ---------- */
+var NEG=[
+{round:"第一回合 · 开局",txt:"光绪三十三年，君任哈尔滨铁路交涉局总办。俄总办霍尔瓦特拍案曰：购地伐木两合同，前年道员周冕早已签押，毋庸再议！",
+ opts:[
+  {t:"援引条约逐条驳斥：「理所不许，约虽成可废，地虽失可复」",s:3,r:"善！据理直争，不刚不柔——某即以此八字与俄人相持两年。"},
+  {t:"急电外务部，请俄廷施压",s:1,r:"借力外廷，俄人反笑我怯，谈判之柄转授于人。"},
+  {t:"先允其半，徐图挽回",s:0,r:"一让则俄人得陇望蜀，林区六百里尽非我有矣。"}]},
+{round:"第二回合 · 局费",txt:"俄人又施故技：以停拨局费相要挟。局费旧仰给于铁路公司，名为交涉，实则公司隶属耳。",
+ opts:[
+  {t:"拒局费不受，自筹经费，独立于公司之外",s:3,r:"正是！某拒局费不受，议废前约——局费一日受制于人，主权一日不得自主。"},
+  {t:"暂受局费，再寻转机",s:1,r:"饮鸩止渴，会议席上腰杆先弯了三分。"},
+  {t:"向省署请款，听候裁夺",s:2,r:"差可。然筹边之费，当以自主为先。"}]},
+{round:"第三回合 · 满洲里",txt:"勘界至满洲里，俄员儒达诺甫坚称：满洲里乃西伯利亚与东省两路连轨之所，俄经营多年，应归俄界。",
+ opts:[
+  {t:"坚执条约，证以山川形势，亲履勘界两历寒暑",s:3,r:"中！某先自履勘，复同俄员会勘，炎天雪地，援引图说，初终不稍让。"},
+  {t:"请两国勘界大臣会议公断",s:1,r:"公断亦须我先有确据，空言公断，徒费时日。"},
+  {t:"允其租借，换别处利权",s:0,r:"寸土不让人——此某在呼伦所立之誓也。"}]}];
+var negIdx=0,negScore=0;
+function startNeg(){negIdx=0;negScore=0;
+  document.getElementById('negOverlay').classList.add('open');
+  document.getElementById('negBox').innerHTML='<h2>勘 界 谈 判</h2><div class="neg-sub">光绪三十三—三十四年 · 你即宋小濂</div>';
+  negRound();}
+function negRound(){
+  var B=document.getElementById('negBox');
+  if(negIdx>=NEG.length){negEnd();return;}
+  var r=NEG[negIdx],h='<div class="neg-scene"><div class="round">'+r.round+'</div><div class="txt">'+r.txt+'</div></div><div class="neg-opts">';
+  r.opts.forEach(function(o,i){h+='<button class="neg-opt" data-i="'+i+'">'+(i+1)+'．'+o.t+'</button>';});
+  B.innerHTML=h+'</div><div id="negFeed"></div>';
+  B.querySelectorAll('.neg-opt').forEach(function(b){
+    b.addEventListener('click',function(){
+      var o=r.opts[+this.dataset.i];negScore+=o.s;
+      document.getElementById('negFeed').innerHTML=
+        '<div class="neg-scene" style="margin-top:10px"><div class="round">宋小濂按</div><div class="txt">'+o.r+'</div>'+
+        '<button class="neg-opt" style="margin-top:10px;text-align:center" id="negNext">'+(negIdx<NEG.length-1?'进下一回合':'观谈判结果')+'</button></div>';
+      document.getElementById('negNext').addEventListener('click',function(){negIdx++;negRound();});
+    });
+  });
+}
+function negEnd(){
+  var stars=negScore>=8?3:negScore>=5?2:1,names={3:'勘界钦差',2:'边务能臣',1:'初入幕府'};
+  try{var st=JSON.parse(localStorage.getItem('jl3j_agent_stamps')||'{}');
+  st['neg_'+stars]={name:names[stars],stars:stars,at:Date.now()};
+  localStorage.setItem('jl3j_agent_stamps',JSON.stringify(st));}catch(e){}
+  toast('获印「'+names[stars]+'」');
+  var msg=stars===3?'会议一百四十余次，收回地亩过半、林区十九，满洲里仍归我界——俄人亦不能为之难也。':stars===2?'虽未尽复失地，然主权之基已立，可称能臣。':'任重道远，尚须砥砺。';
+  document.getElementById('negBox').innerHTML='<h2>谈 判 终 局</h2><div class="neg-sub">得分 '+negScore+' / 9</div>'+
+  '<div class="neg-seal">勘界<br>钦差</div><div class="stars">'+'★'.repeat(stars)+'☆'.repeat(3-stars)+'</div>'+
+  '<div class="neg-score">'+msg+'<br>印已存入「三杰印藏」</div>'+
+  '<button class="neg-opt" style="margin-top:16px;text-align:center" onclick="closeNeg()">收 兵 返 厅</button>';
+}
+function closeNeg(){document.getElementById('negOverlay').classList.remove('open');}
+
+/* ---------- 启动 ---------- */
+renderPresets();
+(function(){
+  var node=new URLSearchParams(location.search).get('node');
+  if(node)setTimeout(function(){locationSummon(node);},400);
+  else setMode('bot');
+})();
+</script>
+</body>
+</html>
+</body>
+</html>

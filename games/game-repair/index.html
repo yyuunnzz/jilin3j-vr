@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>古籍残卷修复 · 吉林三杰</title>
+<!-- Vue3 全局构建（本地文件，完全离线可运行；若缺失则回退 CDN） -->
+<script src="./vue.global.prod.js"></script>
+<script>window.Vue || document.write('<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"><\/script>');</script>
+<style>
+:root { --ink:#2b2620; --red:#8c2f2f; --red-dark:#6e1f1f; --gold:#b8964e; }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{min-height:100%}
+body{font-family:"KaiTi","STKaiti","楷体","STSong","Songti SC","SimSun",serif;color:var(--ink);user-select:none;background:radial-gradient(ellipse at 18% 12%,rgba(140,47,47,.20),transparent 55%),radial-gradient(ellipse at 86% 88%,rgba(184,138,68,.16),transparent 55%),radial-gradient(ellipse at 55% 42%,rgba(120,90,50,.06),transparent 60%),linear-gradient(160deg,#2b1f12,#171009 72%);background-attachment:fixed}
+.lamp{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 78% 42% at 50% 4%,rgba(255,214,140,.13),transparent 62%)}
+#app{max-width:520px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 6px) 12px 24px;position:relative;z-index:1;animation:appIn .7s cubic-bezier(.16,.9,.3,1) both}
+@keyframes appIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* 背景装饰：漂浮残页 + 墨点 */
+.bg-deco{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-deco i{position:absolute;background:rgba(241,230,198,.07);clip-path:polygon(0 5%,22% 0,46% 3%,72% 0,100% 5%,98% 32%,100% 62%,96% 92%,70% 100%,46% 97%,22% 100%,2% 92%,0 62%,3% 32%);animation:flut 13s ease-in-out infinite}
+.bg-deco i:nth-child(1){width:76px;height:112px;top:10%;left:3%;--r:-14deg;animation-delay:-3s}
+.bg-deco i:nth-child(2){width:56px;height:84px;top:54%;left:6%;--r:12deg;animation-delay:-6s}
+.bg-deco i:nth-child(3){width:96px;height:140px;top:14%;right:3%;--r:9deg;animation-delay:-9s}
+.bg-deco i:nth-child(4){width:46px;height:70px;bottom:6%;right:8%;--r:-8deg;animation-delay:-4s}
+.bg-deco i:nth-child(5){width:36px;height:54px;top:46%;left:48%;--r:16deg;animation-delay:-11s}
+@keyframes flut{0%,100%{transform:translateY(0) rotate(var(--r))}50%{transform:translateY(-20px) rotate(calc(var(--r) + 5deg))}}
+.bg-deco .ink1,.bg-deco .ink2{position:absolute;border-radius:50%;filter:blur(2px)}
+.bg-deco .ink1{width:180px;height:180px;right:-40px;top:-40px;background:radial-gradient(circle,rgba(6,4,0,.5) 0 16%,rgba(6,4,0,.2) 42%,transparent 66%)}
+.bg-deco .ink2{width:150px;height:150px;left:-50px;bottom:6%;background:radial-gradient(circle,rgba(6,4,0,.38) 0 14%,rgba(6,4,0,.14) 40%,transparent 65%)}
+
+/* 顶栏：标题居左，返回首页在右上角 */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:4px 2px 12px}
+.title-main{font-size:21px;font-weight:normal;letter-spacing:.3em;color:#f0e2bd;text-shadow:0 1px 2px rgba(0,0,0,.55),0 0 16px rgba(140,47,47,.4);display:flex;align-items:center;gap:10px;animation:fadeUp .6s .1s both}
+.title-main::before{content:'';width:5px;height:24px;background:linear-gradient(180deg,var(--red) 0 45%,var(--gold) 45% 75%,var(--red) 75%);box-shadow:0 0 8px rgba(140,47,47,.5)}
+.back-btn{position:relative;overflow:hidden;font-family:inherit;font-size:13px;letter-spacing:.1em;color:#f0e2bd;text-decoration:none;background:linear-gradient(180deg,#7a2323,#5d1a1a);border:1px solid #3d0f0f;padding:8px 12px;box-shadow:inset 0 0 0 1px rgba(243,231,200,.28),0 2px 0 #3d0f0f;animation:fadeUp .6s .2s both}
+.back-btn::after{content:'';position:absolute;top:0;bottom:0;left:-70%;width:40%;background:linear-gradient(100deg,transparent,rgba(243,231,200,.25),transparent);transform:skewX(-18deg);animation:shine 4.2s 1.6s infinite}
+@keyframes shine{0%,45%{left:-70%}75%,100%{left:135%}}
+.back-btn:active{transform:translateY(1px)}
+
+/* 关卡导航 */
+.stage-bar{display:flex;gap:8px;margin:0 0 12px}
+.stage-btn{flex:1;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit;font-size:15px;letter-spacing:.1em;color:var(--ink);background:linear-gradient(180deg,#f2e5c2,#e3cd9f);border:1.5px solid var(--red);padding:10px 4px 8px;box-shadow:0 3px 0 rgba(120,80,25,.35);position:relative;clip-path:polygon(3% 2%,10% 0,26% 3%,48% 0,70% 3%,88% 0,98% 2%,100% 30%,98% 60%,100% 88%,97% 100%,78% 98%,56% 100%,34% 98%,16% 100%,2% 98%,0 70%,2% 36%)}
+.stage-btn.active{background:linear-gradient(180deg,#8a2a2a,#641a1a);color:#f0e2bd;box-shadow:0 3px 0 #431111}
+.stage-btn.locked{opacity:.5;border-style:dashed;background:linear-gradient(180deg,#ddd0ae,#cfc095)}
+.stage-btn.done{border-color:var(--gold)}
+.stage-btn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(120,80,25,.35)}
+.stage-btn{animation:fadeUp .55s var(--d,.3s) both}.stage-btn:nth-child(2){--d:.42s}.stage-btn:nth-child(3){--d:.54s}
+.st-idx{font-size:10px;letter-spacing:.3em;color:rgba(43,38,32,.5)}
+.stage-btn.active .st-idx{color:rgba(240,226,189,.6)}
+.st-name{letter-spacing:.2em}
+.lock{position:relative;width:9px;height:7px;border:1.5px solid var(--red-dark);border-radius:2px;display:inline-block}
+.lock::before{content:'';position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:6px;height:6px;border:1.5px solid var(--red-dark);border-bottom:none;border-radius:4px 4px 0 0}
+.seal{font-style:normal;font-size:11px;line-height:1;color:var(--red-dark);border:1px solid var(--red-dark);padding:1px 4px;transform:rotate(-8deg)}
+.stage-btn.active .seal{color:#f0e2bd;border-color:rgba(240,226,189,.7)}
+
+/* 修复台（桌面）：留足残页散落空间 */
+.stage{position:relative;width:240px;height:400px}
+.desk{position:relative;border-radius:10px;min-height:580px;background:radial-gradient(ellipse at 50% 0%,rgba(255,240,200,.09),transparent 55%),repeating-linear-gradient(0deg,rgba(255,240,200,.018) 0 2px,transparent 2px 12px),linear-gradient(160deg,#4a3a26,#2a1f13);box-shadow:inset 0 0 80px rgba(0,0,0,.5),0 14px 34px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:30px 0;border:1px solid rgba(184,138,68,.22);animation:riseIn .8s .45s cubic-bezier(.16,.9,.3,1) both}
+@keyframes riseIn{from{opacity:0;transform:translateY(26px) scale(.98)}to{opacity:1;transform:none}}
+.desk::before,.desk::after{content:'';position:absolute;width:36px;height:36px;border:2px solid rgba(184,138,68,.38);z-index:2;pointer-events:none}
+.desk::before{top:12px;left:12px;border-right:none;border-bottom:none;border-radius:7px 0 0 0}
+.desk::after{bottom:12px;right:12px;border-left:none;border-top:none;border-radius:0 0 7px 0}
+.desk-label{position:absolute;right:16px;top:16px;writing-mode:vertical-rl;letter-spacing:.45em;font-size:11px;color:rgba(240,226,189,.42);z-index:2}
+.desk-seal{position:absolute;left:16px;bottom:16px;font-size:11px;letter-spacing:.2em;color:rgba(140,47,47,.72);border:1.5px solid rgba(140,47,47,.5);padding:3px 6px;transform:rotate(-7deg);z-index:2;background:rgba(140,47,47,.05);animation:stampIn .9s 1.1s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes stampIn{0%{opacity:0;transform:rotate(-7deg) scale(1.8)}55%{opacity:1;transform:rotate(-9deg) scale(.95)}100%{opacity:1;transform:rotate(-7deg) scale(1)}}
+
+/* 纸面：碎片未拼合前不显形，全部归位后整卷浮现（撕裂残缺边缘纯CSS） */
+.paper{position:absolute;inset:0;clip-path:polygon(2% 1%,6% .4%,11% 1.5%,17% .3%,23% 1.6%,30% .4%,37% 1.2%,44% .3%,51% 1.5%,58% .4%,66% 1.5%,73% .3%,80% 1.5%,87% .4%,94% 1.5%,98% 1%,100% 8%,98.5% 16%,100% 25%,98.5% 34%,100% 43%,98.5% 52%,100% 61%,98.5% 70%,100% 79%,98.5% 88%,99.5% 96%,94% 99%,87% 98.4%,80% 100%,73% 98.5%,66% 100%,58% 98.5%,51% 100%,44% 98.4%,37% 100%,30% 98.5%,23% 100%,17% 98.4%,11% 100%,6% 98.5%,2% 99%,.6% 90%,1.5% 80%,.5% 70%,1.5% 60%,.5% 50%,1.5% 40%,.5% 30%,1.5% 20%,.6% 10%)}
+.surface{position:absolute;inset:0;z-index:0;opacity:0;transition:opacity .8s ease;background:radial-gradient(ellipse at 20% 15%,rgba(140,47,47,.08),transparent 40%),radial-gradient(ellipse at 80% 85%,rgba(90,60,20,.12),transparent 45%),radial-gradient(ellipse at 60% 30%,rgba(120,90,40,.08),transparent 35%),repeating-linear-gradient(0deg,rgba(120,80,25,.03) 0 2px,transparent 2px 8px),linear-gradient(180deg,#f1e6c6,#e8d6ab 55%,#ddc492);box-shadow:0 14px 30px rgba(20,10,0,.5)}
+.paper.revealed .surface{opacity:1}
+.paper.revealed::after{content:'';position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(105deg,transparent 34%,rgba(255,238,185,.8) 50%,transparent 66%);animation:sweep 1.2s ease}
+@keyframes sweep{from{transform:translateX(-130%)}to{transform:translateX(130%)}}
+.paper.shake{animation:shakeX .5s ease}
+.paper.glow{animation:glowFresh 1.4s ease}
+@keyframes shakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+@keyframes glowFresh{0%{filter:brightness(1)}40%{filter:brightness(1.14) sepia(.06)}100%{filter:brightness(1)}}
+.paper.glow .surface{box-shadow:inset 0 0 46px 14px rgba(230,200,120,.5),0 14px 30px rgba(20,10,0,.5)}
+
+/* 残页碎片：散落为撕裂纸片，归位后撕边与投影移除，拼合无缝 */
+.pieces{position:absolute;inset:0;z-index:1;overflow:visible}
+.piece{position:absolute;width:84px;height:204px;overflow:hidden;cursor:pointer;transition:filter .5s ease;will-change:transform;filter:drop-shadow(0 6px 10px rgba(40,25,8,.45))}
+/* 碎片纸纹与整卷同源，按所在位置反向偏移，拼合后与卷面严丝合缝 */
+.piece::before{content:'';position:absolute;inset:0;z-index:0;background-image:linear-gradient(180deg,#f1e6c6,#e8d6ab 55%,#ddc492);background-size:240px 400px;background-repeat:no-repeat;background-position:var(--bgx,0) var(--bgy,0);transition:opacity .8s ease}
+.paper.revealed .piece::before{opacity:0}
+/* [修改] 整卷浮现时保留已拼合碎片（含填空按钮），仅让底层卷面纸纹浮现；不再隐藏碎片 */
+.paper.revealed .piece{pointer-events:auto}
+/* [修改] 撕边缺痕由 JS 按共享模板生成（相邻碎片缺痕吻合，见 tearClip），此处不再逐块写死 */
+.piece.done{clip-path:none;filter:none;cursor:default}
+/* [新增] 宣纸噪点遮罩：多层细密纸纹 + 纤维点（纯背景图，无粒子无动画），盖住未归位碎片文字 */
+.piece:not(.done)::after{content:'';position:absolute;inset:0;z-index:4;pointer-events:none;opacity:.8;background:radial-gradient(rgba(85,72,50,.18) 1px,transparent 1.4px) 0 0/9px 10px,radial-gradient(rgba(120,104,76,.13) 1px,transparent 1.4px) 4px 6px/12px 13px,repeating-linear-gradient(38deg,rgba(110,92,60,.05) 0 3px,transparent 3px 7px)}
+.piece.done::after{background:none}
+.piece.glue::after{content:'';position:absolute;inset:0;z-index:2;border:1.5px solid rgba(184,150,78,.85);animation:glueFade .8s ease forwards;pointer-events:none}
+@keyframes glueFade{0%{opacity:.95;box-shadow:0 0 14px rgba(184,150,78,.9)}100%{opacity:0;box-shadow:none}}
+.piece-inner{position:absolute;z-index:1;width:240px;height:400px}
+
+/* 竖排正文：每块碎片内渲染同一残卷，按偏移裁切显示各自区域 */
+/* [修改] 碎片池内文字不可读：低透明度墨迹（仅见轮廓）+ 归位后清晰，禁用大半径 blur */
+.book-text{writing-mode:vertical-rl;text-orientation:upright;width:240px;height:400px;padding:14px 0;font-size:16px;line-height:34px;letter-spacing:.08em;text-align:justify;color:rgba(43,38,32,.13);text-shadow:0 0 4px rgba(43,38,32,.32);transition:color .5s ease,text-shadow .5s ease}
+.piece.done .book-text{color:var(--ink);text-shadow:none}
+.seg{color:inherit}
+.blank{display:inline-flex;align-items:center;justify-content:center;min-width:1.8em;min-height:1.9em;margin:.05em .12em;border:1.5px dashed var(--red);background:rgba(140,47,47,.06);color:var(--ink);font-family:inherit;font-size:.95em;position:relative;cursor:pointer;vertical-align:middle}
+.piece:not(.done) .blank{color:rgba(140,47,47,.32);border-color:rgba(140,47,47,.4);background:rgba(140,47,47,.03)}
+.blank.disabled{pointer-events:none;opacity:.55;border-style:dotted;cursor:default}
+.ph{font-size:.72em;color:rgba(140,47,47,.55)}
+.blank .ans{position:relative;z-index:1;opacity:0}
+
+/* 答对：墨迹铺开 + 裂痕愈合 */
+.blank.filled{border-color:transparent;background:transparent;cursor:default}
+.blank.filled::after{content:'';position:absolute;inset:-45% -70%;background:radial-gradient(circle at 35% 35%,rgba(43,38,32,.85),transparent 55%),radial-gradient(circle at 72% 68%,rgba(140,47,47,.5),transparent 52%);animation:heal 1.15s cubic-bezier(.25,.6,.3,1) forwards;pointer-events:none;z-index:0}
+.blank.filled .ans{animation:inkSpread .9s .35s both}
+@keyframes heal{0%{opacity:1;transform:scale(.4);filter:blur(0)}55%{opacity:1;transform:scale(1.06);filter:blur(1px)}100%{opacity:0;transform:scale(1.6);filter:blur(5px)}}
+@keyframes inkSpread{0%{opacity:0;filter:blur(6px)}60%{opacity:1}100%{opacity:1;filter:blur(0)}}
+
+/* 提示条 */
+.hint-bar{margin-top:16px;text-align:center;font-size:15px;letter-spacing:.3em;color:#f0e2bd;text-shadow:0 1px 2px rgba(0,0,0,.5);animation:fadeUp .6s .9s both}
+.hint-bar::before,.hint-bar::after{content:'';display:inline-block;width:34px;height:1px;vertical-align:middle;background:linear-gradient(90deg,transparent,rgba(184,138,68,.8));margin:0 12px}
+.hint-bar::after{background:linear-gradient(90deg,rgba(184,138,68,.8),transparent)}
+.sub-hint{margin-top:8px;text-align:center;font-size:12px;letter-spacing:.2em;color:rgba(240,226,189,.5);animation:fadeUp .6s .75s both}
+.roam-banner{margin:10px auto 0;max-width:420px;padding:10px 14px;border:1px solid rgba(184,150,78,.55);background:linear-gradient(180deg,rgba(60,42,20,.8),rgba(46,32,15,.8));color:#f0e2bd;font-size:14px;letter-spacing:.1em;text-align:center;cursor:pointer;border-radius:4px;transition:transform .2s,box-shadow .2s;animation:fadeUp .6s .3s both}
+.roam-banner b{color:var(--gold);letter-spacing:.2em}
+.roam-banner:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(0,0,0,.35)}
+
+/* 弹层 */
+.overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(28,19,9,.62);padding:20px}
+.fade-enter-active,.fade-leave-active{transition:opacity .25s}
+.fade-enter-from,.fade-leave-to{opacity:0}
+.modal{width:min(88vw,380px);text-align:center;position:relative;background:repeating-linear-gradient(0deg,rgba(120,80,25,.025) 0 2px,transparent 2px 9px),linear-gradient(180deg,#f6ead0,#e6d1a4);border:1px solid var(--red);outline:4px solid rgba(140,47,47,.16);box-shadow:0 24px 60px rgba(0,0,0,.6);padding:26px 20px 24px;animation:modalIn .3s cubic-bezier(.2,.9,.3,1.2)}
+.modal::before{content:'';position:absolute;left:50%;top:-1px;transform:translateX(-50%);width:130px;height:6px;background:linear-gradient(90deg,transparent,var(--red) 28% 72%,transparent)}
+.modal::after{content:'';position:absolute;left:50%;bottom:-1px;transform:translateX(-50%);width:130px;height:4px;background:linear-gradient(90deg,transparent,var(--gold) 30% 70%,transparent)}
+@keyframes modalIn{from{opacity:0;transform:translateY(18px) scale(.94)}to{opacity:1;transform:none}}
+.modal h3{font-size:18px;font-weight:normal;letter-spacing:.3em;color:var(--red-dark);padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid rgba(140,47,47,.35)}
+.modal .hint{font-size:13px;color:rgba(43,38,32,.7);letter-spacing:.15em}
+.pick-tip{font-size:13px;letter-spacing:.2em;color:var(--red);border:1px dashed rgba(140,47,47,.6);background:rgba(140,47,47,.08);padding:8px 10px;margin:-4px 0 14px}
+.tip-enter-active{transition:all .3s ease}
+.tip-enter-from{opacity:0;transform:translateY(-6px)}
+.tip-leave-active{transition:opacity .2s}
+.tip-leave-to{opacity:0}
+.options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0 16px}
+.opt{cursor:pointer;font-family:inherit;font-size:18px;letter-spacing:.2em;color:var(--ink);background:linear-gradient(180deg,#f0e2bd,#e0c99b);border:1.5px solid var(--red);padding:12px 0;box-shadow:0 2px 0 rgba(120,80,25,.3)}
+.opt:active{transform:translateY(1px) scale(.98)}
+.note-body{text-align:left;line-height:1.9;font-size:14px;color:var(--ink);margin:10px 4px 16px;border-left:3px solid rgba(140,47,47,.45);padding-left:12px}
+.btn{display:inline-block;cursor:pointer;border:none;font-family:inherit;font-size:15px;letter-spacing:.25em;padding:11px 20px;text-decoration:none}
+.btn-red{background:var(--red-dark);color:#f3e7c8;border:1px solid #4a1414;box-shadow:inset 0 0 0 1px rgba(243,231,200,.35),0 3px 0 #4a1414}
+.btn-line{background:transparent;color:var(--red-dark);border:1px solid var(--red-dark)}
+.btn:active{transform:translateY(1px)}
+.btn-row{display:flex;gap:12px;justify-content:center;margin-top:6px}
+
+/* 评分评级 */
+.grade-big{display:inline-block;font-size:28px;letter-spacing:.18em;color:var(--red-dark);border:2px solid var(--red-dark);padding:8px 18px;transform:rotate(-2deg);margin:6px 0 12px}
+.grade-big.g-perfect{color:var(--gold);border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,150,78,.25)}
+.grade-big.g-good{color:var(--red-dark);border-color:var(--red-dark)}
+.grade-big.g-ok{color:var(--ink);border-color:var(--ink)}
+.score-line{font-size:15px;letter-spacing:.3em;color:rgba(43,38,32,.75);margin-bottom:8px}
+
+/* 通关页 */
+.complete-panel{width:min(90vw,400px);text-align:center;position:relative;background:repeating-linear-gradient(0deg,rgba(120,80,25,.025) 0 2px,transparent 2px 9px),linear-gradient(180deg,#f6ead0,#e6d1a4);border:2px solid var(--gold);outline:6px solid rgba(184,150,78,.22);box-shadow:0 30px 80px rgba(0,0,0,.65);padding:44px 26px 36px;animation:modalIn .35s cubic-bezier(.2,.9,.3,1.2)}
+.complete-panel::before{content:'';position:absolute;left:50%;top:-1px;transform:translateX(-50%);width:170px;height:6px;background:linear-gradient(90deg,transparent,var(--red) 30% 70%,transparent)}
+.complete-panel::after{content:'三杰';position:absolute;right:20px;top:20px;font-size:11px;letter-spacing:.2em;color:var(--red-dark);border:1.5px solid var(--red-dark);padding:3px 6px;transform:rotate(6deg);background:rgba(140,47,47,.06)}
+.compass{width:110px;height:110px;margin:0 auto 22px;position:relative;border-radius:50%;border:2px solid var(--gold);background:repeating-conic-gradient(from 0deg,rgba(184,150,78,.16) 0deg 15deg,transparent 15deg 30deg);box-shadow:inset 0 0 0 8px rgba(184,150,78,.12);animation:spin 18s linear infinite}
+.compass::before{content:'';position:absolute;left:50%;top:50%;width:80%;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);transform:translate(-50%,-50%)}
+.compass::after{content:'';position:absolute;left:50%;top:50%;width:2px;height:80%;background:linear-gradient(180deg,transparent,var(--gold),transparent);transform:translate(-50%,-50%)}
+.compass .needle{position:absolute;left:50%;top:12%;width:2px;height:76%;background:linear-gradient(180deg,var(--red) 0 44%,var(--ink) 44% 56%,var(--gold) 56%);transform:translateX(-50%)}
+.compass .core{position:absolute;left:50%;top:50%;width:14px;height:14px;border-radius:50%;background:var(--red-dark);border:2px solid var(--gold);transform:translate(-50%,-50%)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.complete-title{font-size:21px;font-weight:normal;letter-spacing:.25em;color:var(--red-dark);margin-bottom:14px}
+.complete-sub{font-size:15px;line-height:1.9;color:rgba(43,38,32,.75);margin-bottom:26px}
+.complete-sub b{color:var(--red-dark);letter-spacing:.2em}
+
+/* ========== [新增] 音效开关 / 干扰碎片 / 废简篓 / 拂尘 / 分段 / 结算纪念卡 ========== */
+.top-right{display:flex;gap:8px;align-items:center}
+.sound-btn{font-family:inherit;font-size:13px;letter-spacing:.15em;color:#f0e2bd;background:linear-gradient(180deg,#7a2323,#5d1a1a);border:1px solid #3d0f0f;padding:8px 10px;box-shadow:inset 0 0 0 1px rgba(243,231,200,.28),0 2px 0 #3d0f0f;animation:fadeUp .6s .3s both}
+.sound-btn:active{transform:translateY(1px)}
+.sound-btn.off{opacity:.5}
+/* [新增] 重置进度按钮 */
+.reset-btn{font-family:inherit;font-size:12px;letter-spacing:.08em;color:rgba(240,226,189,.85);background:transparent;border:1px solid rgba(184,138,68,.55);padding:8px 9px;box-shadow:none;animation:fadeUp .6s .4s both}
+.reset-btn:active{transform:translateY(1px)}
+/* [修改] 干扰片：与真碎片同色同质纸纹，撕边由 JS 独立生成（不与任何真片吻合），仅保留独立乱序文字；
+   无匹配原位，拖入拼接区抖动回弹，只能弃入废简篓 */
+.piece.fake .piece-inner{transform:none !important}
+/* 拖拽态 */
+.piece.dragging{transition:none !important;filter:drop-shadow(0 14px 20px rgba(20,10,0,.6)) !important}
+/* 抖动回弹 */
+.piece.bounce{animation:shakeX .5s ease}
+/* 拂尘 */
+.dust-btn{position:absolute;right:4px;bottom:4px;z-index:7;font-family:inherit;font-size:11px;letter-spacing:.1em;color:#f3e7c8;background:linear-gradient(180deg,#8a2a2a,#641a1a);border:1px solid #431111;padding:2px 6px;box-shadow:0 2px 0 #431111;pointer-events:auto}
+.dust-btn:active{transform:translateY(1px)}
+.dust-mask{position:absolute;inset:0;z-index:5;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,rgba(120,105,75,.3),rgba(90,78,55,.45) 72%);transition:opacity .6s ease}
+.piece.clean .dust-mask{opacity:0}
+.piece.dusting{animation:dustSweep .8s ease}
+@keyframes dustSweep{0%{filter:brightness(1)}40%{filter:brightness(1.28) sepia(.12)}100%{filter:brightness(1)}}
+.piece.clean::after{content:'妥';position:absolute;left:4px;top:4px;z-index:6;font-size:10px;color:rgba(140,47,47,.8);border:1px solid rgba(140,47,47,.6);background:rgba(140,47,47,.08);padding:0 3px;transform:rotate(-6deg)}
+/* 废简篓 */
+.basket{position:absolute;right:12px;bottom:12px;z-index:20;width:96px;height:80px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;padding-bottom:9px;font-family:inherit;border:1.5px dashed rgba(184,138,68,.55);background:rgba(0,0,0,.24);border-radius:6px;transition:transform .2s,border-color .2s,background .2s}
+.basket-main{font-size:12px;letter-spacing:.4em;text-indent:.4em;line-height:1;color:rgba(240,226,189,.88)}
+.basket-sub{font-size:9px;letter-spacing:.12em;line-height:1;color:rgba(240,226,189,.5)}
+.basket.hot{border-color:rgba(140,47,47,.95);background:rgba(140,47,47,.28);transform:scale(1.07)}
+.basket::after{content:'';position:absolute;top:-7px;width:64px;height:9px;border:1.5px dashed rgba(184,138,68,.55);border-bottom:none;border-radius:4px 4px 0 0}
+/* 分段进度 */
+.seg-bar{display:flex;gap:14px;justify-content:center;margin:10px 0 4px}
+.seg-dot{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;letter-spacing:.3em;color:rgba(240,226,189,.55)}
+.seg-dot i{width:32px;height:5px;background:rgba(240,226,189,.18);border-radius:3px;transition:background .4s}
+.seg-dot.on i{background:linear-gradient(90deg,var(--gold),#d9b56a)}
+.seg-dot.on{color:rgba(240,226,189,.9)}
+/* 裱糊光效 */
+.paper.pasted{animation:pasteGlow 1.6s ease}
+@keyframes pasteGlow{0%{filter:brightness(1)}35%{filter:brightness(1.22) sepia(.1)}100%{filter:brightness(1)}}
+.piece.pasted{border:1.5px solid rgba(184,150,78,.6);box-shadow:0 0 16px rgba(230,200,120,.4)}
+/* 回看原文 */
+.review-box{margin:10px 0 6px;padding:10px 12px;text-align:left;font-size:14px;line-height:2;color:var(--ink);background:rgba(184,150,78,.12);border:1px dashed rgba(184,150,78,.6);border-left:3px solid var(--gold)}
+.review-box b{color:var(--red-dark)}
+/* 结算统计 */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 16px}
+.stat{background:rgba(120,80,25,.08);border:1px solid rgba(120,80,25,.28);padding:8px 4px}
+.stat b{display:block;font-weight:normal;font-size:13px;color:var(--red-dark);letter-spacing:.2em;margin-bottom:3px}
+.stat i{font-style:normal;font-size:16px;letter-spacing:.1em;color:var(--ink)}
+/* 纪念卡 */
+.card-panel{width:min(88vw,340px);text-align:center;background:repeating-linear-gradient(0deg,rgba(120,80,25,.025) 0 2px,transparent 2px 9px),linear-gradient(180deg,#f6ead0,#e6d1a4);border:2px solid var(--gold);outline:5px solid rgba(184,150,78,.25);box-shadow:0 30px 80px rgba(0,0,0,.65);padding:24px 18px 18px;animation:modalIn .35s cubic-bezier(.2,.9,.3,1.2)}
+.card-panel h3{font-size:19px;font-weight:normal;letter-spacing:.3em;color:var(--red-dark);margin-bottom:10px}
+.card-panel canvas{width:100%;display:block;margin:10px 0 8px;border:1px solid rgba(120,80,25,.3)}
+.long-save{font-size:12px;letter-spacing:.2em;color:rgba(140,47,47,.75)}
+</style>
+</head>
+<body>
+<div class="bg-deco"><i></i><i></i><i></i><i></i><i></i><span class="ink1"></span><span class="ink2"></span></div>
+<div class="lamp"></div>
+<div id="app">
+  <header class="topbar">
+    <h1 class="title-main">古籍残卷修复</h1>
+    <div class="top-right">
+      <button class="sound-btn" :class="{ off: !soundOn }" @click="toggleSound">音{{ soundOn ? '开' : '关' }}</button>
+      <button class="reset-btn" @click="resetConfirm = true">重置进度</button>
+      <a class="back-btn" href="javascript:void(0)" onclick="backToHall()">返回展厅</a>
+    </div>
+  </header>
+
+  <nav class="stage-bar">
+    <button v-for="(lv, i) in LEVELS" :key="lv.id" class="stage-btn"
+      :class="{ active: LEVELS[curIdx].id === lv.id, done: stageState(lv).done, locked: !stageState(lv).unlocked }"
+      @click="goLevel(i)">
+      <span class="st-idx">{{ ['壹','贰','叁'][i] }}</span>
+      <span class="st-name">{{ lv.name }}</span>
+      <i v-if="!stageState(lv).unlocked" class="lock"></i>
+      <i v-else-if="stageState(lv).done" class="seal">{{ stageState(lv).best ? stageState(lv).best.grade.charAt(0) : '毕' }}</i>
+    </button>
+  </nav>
+
+  <main class="desk">
+    <span class="desk-label">吉林三杰 · 残卷修复</span>
+    <span class="desk-seal">匠心</span>
+    <div class="basket" :class="{ hot: basketHot }"><span class="basket-main">废简篓</span><span class="basket-sub">弃置干扰残片</span></div>
+  <div class="stage">
+    <div class="paper" :class="{ shake: shaking, glow: glowing, revealed: revealed, pasted: pasting }">
+      <span class="surface"></span>
+    </div>
+    <div class="pieces">
+        <div v-for="(p, i) in pieces" :key="i" class="piece"
+          :class="{ done: p.done, glue: p.done, fake: p.fake, dragging: draggingIdx === i, bounce: bouncers[i], clean: p.clean, dusting: dustingIdx === i, pasted: p.pasted }"
+          :style="pieceStyle(p)"
+          @pointerdown="onPieceDown(i, $event)">
+          <div class="piece-inner" :style="innerStyle(p)">
+            <p v-if="p.fake" class="book-text junk">{{ p.junk }}</p>
+            <p v-else class="book-text">
+              <template v-for="(seg, j) in segments" :key="j">
+                <span v-if="seg.type === 'text'" class="seg">{{ seg.value }}</span>
+                <button v-else class="blank" :class="{ disabled: !allPiecesDone, filled: !!filled[seg.id] }"
+                  @click="openBlank(seg.id)">
+                  <span class="ans">{{ filled[seg.id] || '' }}</span>
+                  <span v-if="!filled[seg.id]" class="ph">□</span>
+                </button>
+              </template>
+            </p>
+          </div>
+          <span v-if="p.done && p.dusty && !p.clean" class="dust-mask"></span>
+          <button v-if="p.done && p.dusty && !p.clean" class="dust-btn" @click.stop="dustPiece(i)">拂尘</button>
+        </div>
+      </div>
+  </div>
+</main>
+
+  <div class="seg-bar">
+    <span v-for="(s, si) in current.sections" :key="si" class="seg-dot" :class="{ on: segDone(si) }">
+      <i></i>{{ s.short }}
+    </span>
+  </div>
+  <p class="hint-bar">{{ hintText }}</p>
+  <p class="sub-hint">拖动碎片入拼接区复原 · 干扰残片请弃入废简篓</p>
+
+  <!-- 全通横幅：刷新后入口，而非自动弹窗 -->
+  <div v-if="allDone && !showComplete" class="roam-banner" @click="showComplete = true">
+    残卷全部修复完成 · 已解锁 <b>罗盘文脉探索</b> · 点击查看 →
+  </div>
+
+  <!-- 候选词弹窗 -->
+  <transition name="fade">
+  <div v-if="picker.visible" class="overlay" @click.self="closePicker">
+    <div class="modal">
+      <h3>择词补全</h3>
+      <p class="hint">请甄别形近字与通假字，择其正确者</p>
+      <div class="options">
+        <button v-for="opt in picker.options" :key="opt" class="opt" @click="pick(opt)">{{ opt }}</button>
+      </div>
+      <transition name="tip">
+      <p v-if="picker.tip" class="pick-tip">{{ picker.tip }}</p>
+      </transition>
+      <button class="btn btn-line" @click="closePicker">暂不填写</button>
+    </div>
+  </div>
+  </transition>
+
+  <!-- [新增] 碎片回忆题弹窗 -->
+  <transition name="fade">
+  <div v-if="recall.visible" class="overlay" @click.self="closeRecall">
+    <div class="modal">
+      <h3>碎片回忆 · 复原原文</h3>
+      <p class="hint">此残缺句出自本卷复原文本，择其缺字</p>
+      <p class="note-body" style="text-align:center;font-size:17px;letter-spacing:.15em">
+        <template v-for="(ch, ci) in recall.display" :key="ci"><b v-if="ci === recall.missIdx" style="color:var(--red);font-size:19px">□</b><template v-if="ch !== '*'">{{ ch }}</template></template>
+      </p>
+      <p v-if="recall.review" class="review-box">原文：<b>{{ recall.source }}</b></p>
+      <div class="options">
+        <button v-for="opt in recall.options" :key="opt" class="opt" @click="pickRecall(opt)">{{ opt }}</button>
+      </div>
+      <div class="btn-row" v-if="recall.failed">
+        <button class="btn btn-line" @click="recall.review = true">回看原文</button>
+      </div>
+    </div>
+  </div>
+  </transition>
+
+  <!-- [新增] 结算评级 + 纪念卡 -->
+  <transition name="fade">
+  <div v-if="resultVisible" class="overlay" @click.self="closeResult">
+    <div class="card-panel">
+      <h3>{{ current.name }} · 残卷修复纪要</h3>
+      <p class="grade-big" :class="gradeClass">{{ grade }}</p>
+      <p class="score-line">综合评级分 {{ score }} / 100</p>
+      <div class="stats">
+        <div class="stat"><b>用时</b><i>{{ fmtTime(elapsed) }}</i></div>
+        <div class="stat"><b>干扰片</b><i>{{ fakesCleared }} / {{ fakesTotal }} 弃简</i></div>
+        <div class="stat"><b>答题正确</b><i>{{ quizRight }} / {{ quizTotal }}</i></div>
+        <div class="stat"><b>拂尘复原</b><i>{{ dustedCount }} 片</i></div>
+      </div>
+      <canvas ref="cardCanvas" width="640" height="400" @pointerdown="cardHold" @pointerup="cardHoldClear" @pointerleave="cardHoldClear"></canvas>
+      <p class="long-save">长按图片可保存纪念卡</p>
+      <div class="btn-row">
+        <a class="btn btn-line" href="javascript:void(0)" onclick="backToHall()">返回展厅</a>
+        <button class="btn btn-red" @click="confirmResult">{{ allDone || curIdx === LEVELS.length - 1 ? '完成' : '下一卷' }}</button>
+      </div>
+    </div>
+  </div>
+  </transition>
+
+  <!-- [新增] 段裱糊注解弹窗 -->
+  <transition name="fade">
+  <div v-if="noteVisible" class="overlay" @click.self="closeNote">
+    <div class="modal">
+      <h3>{{ current.name }} · 第{{ noteIdx + 1 }}段 · {{ current.sections[noteIdx].short }}</h3>
+      <p class="note-body">{{ current.sections[noteIdx].note }}</p>
+      <div class="btn-row">
+        <button class="btn btn-red" @click="closeNote">继续修复</button>
+      </div>
+    </div>
+  </div>
+  </transition>
+
+  <!-- 通关页 -->
+  <transition name="fade">
+  <div v-if="showComplete" class="overlay" @click.self="showComplete = false">
+    <div class="complete-panel">
+      <div class="compass"><span class="needle"></span><span class="core"></span></div>
+      <h2 class="complete-title">残卷全部修复完成</h2>
+      <p class="complete-sub">已解锁 <b>罗盘文脉探索</b> 玩法<br>后续内容 · 敬请期待</p>
+      <div class="btn-row">
+        <button class="btn btn-red" @click="restart">再游一关</button>
+        <a class="btn btn-line" href="javascript:void(0)" onclick="backToHall()">返回展厅</a>
+      </div>
+    </div>
+  </div>
+  </transition>
+
+  <!-- [新增] 重置进度确认弹窗 -->
+  <transition name="fade">
+  <div v-if="resetConfirm" class="overlay" @click.self="resetConfirm = false">
+    <div class="modal">
+      <h3>重置游戏进度</h3>
+      <p class="hint">将清除已通关卷宗、最佳评级与最高分纪录，且无法恢复。确定重新开始吗？</p>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="btn btn-line" @click="resetConfirm = false">取消</button>
+        <button class="btn btn-red" @click="resetProgress">确认重置</button>
+      </div>
+    </div>
+  </div>
+  </transition>
+</div>
+
+<script>
+/* ===== [端口] 返回展厅：iframe 内通知宿主关闭；独立打开时回退跳转首页 ===== */
+function backToHall() {
+  if (window.parent !== window) { window.parent.postMessage('closeGame', '*'); }
+  else { location.href = '../../index.html'; }
+}
+const { createApp, ref, reactive, computed, watch } = Vue;
+
+/* ===== 关卡数据（text 中 {1}{2} 对应 blanks 顺序） ===== */
+/* [新增] 每关新增字段：sections=卷宗分段(short/text/note，文本均取自本卷原文与注解，不另编史实)；
+   recall=碎片回忆题(q 中 * 为缺字，answer/options/source 均取自复原文本)；
+   [预留] 多关卡扩充字段：era 时代 / theme 主题 / decor 装饰色，本卷先用默认值。 */
+const LEVELS = [
+  {
+    id: 1, name: '宋小濂', era: '清末民初', theme: '边塞诗卷',
+    text: '宋小濂，字{1}，晚号止园，吉林永吉人。少孤力学，以诸生起家，入将军幕府。历官黑龙江铁路交涉局总办、民政使，擢{2}。俄人窥边，小濂力持界务交涉，边圉以安。民初任黑龙江都督，督办东三省蒙务。工诗，边塞诸作苍凉沉郁，有《边声集》。与徐鼐霖、成多禄并称吉林三杰。',
+    blanks: [
+      { id: 'b1', answer: '铁梅', options: ['铁梅', '铢梅', '铁枚', '帖楳'] },
+      { id: 'b2', answer: '巡抚', options: ['巡抚', '廵抚', '巡府', '驯抚'] }
+    ],
+    annotation: '宋小濂（1860—1926），字铁梅，一字友梅，晚号止园，吉林永吉人。清末民初官员、诗人，历官黑龙江铁路交涉局总办、民政使，擢巡抚，民初任黑龙江都督，督办东三省蒙务，主持中俄界务交涉，争回疆权。著有《边声集》。与徐鼐霖、成多禄并称“吉林三杰”。',
+    sections: [
+      { id: 's1', short: '家世', text: '宋小濂，字{1}，晚号止园，吉林永吉人。少孤力学，以诸生起家，入将军幕府。', note: '宋小濂（1860—1926），字铁梅，晚号止园，吉林永吉人。少孤力学，以诸生起家。' },
+      { id: 's2', short: '仕途', text: '历官黑龙江铁路交涉局总办、民政使，擢{2}。俄人窥边，小濂力持界务交涉，边圉以安。民初任黑龙江都督，督办东三省蒙务。', note: '历官黑龙江铁路交涉局总办、民政使，擢巡抚。俄人窥边，小濂力持界务交涉，边圉以安。民初任黑龙江都督，督办东三省蒙务。' },
+      { id: 's3', short: '诗文', text: '工诗，边塞诸作苍凉沉郁，有《边声集》。与徐鼐霖、成多禄并称吉林三杰。', note: '工诗，边塞诸作苍凉沉郁，有《边声集》。与徐鼐霖、成多禄并称“吉林三杰”。' }
+    ],
+    recall: { q: '工诗，边塞诸作苍凉沉郁，有《*声集》。', answer: '边', options: ['边', '迹', '近', '达'], source: '工诗，边塞诸作苍凉沉郁，有《边声集》。' }
+  },
+  {
+    id: 2, name: '徐鼐霖', era: '清末民初', theme: '文翰诗草',
+    text: '徐鼐霖，字{1}，号憩园，吉林永吉人。少受业于顾肇熙，以拔贡入仕。历官大赉厅通判、黑龙江民政使，尝代理巡抚；民初任吉林省长，主纂乡邦文献。精于文史，尤工{2}，文翰秀劲，时人重之。晚岁寓居京邸，坚拒伪职，著有《憩园诗草》《筹边刍言》。世称吉林三杰。',
+    blanks: [
+      { id: 'b1', answer: '敬宜', options: ['敬宜', '儆宜', '敬谊', '竟宜'] },
+      { id: 'b2', answer: '书法', options: ['书法', '書法', '书灋', '输法'] }
+    ],
+    annotation: '徐鼐霖（1865—1940），字敬宜，号憩园，吉林永吉人。清末民初官员、学者，以拔贡入仕，历官黑龙江民政使，尝代理巡抚，民初任吉林省长。精于文史，书法秀劲，著有《憩园诗草》《筹边刍言》。与宋小濂、成多禄并称“吉林三杰”。',
+    sections: [
+      { id: 's1', short: '全卷', text: '徐鼐霖，字{1}，号憩园，吉林永吉人。少受业于顾肇熙，以拔贡入仕。历官大赉厅通判、黑龙江民政使，尝代理巡抚；民初任吉林省长，主纂乡邦文献。精于文史，尤工{2}，文翰秀劲，时人重之。晚岁寓居京邸，坚拒伪职，著有《憩园诗草》《筹边刍言》。世称吉林三杰。', note: '徐鼐霖，字敬宜，号憩园，吉林永吉人。少受业于顾肇熙，以拔贡入仕。历官大赉厅通判、黑龙江民政使，尝代理巡抚；民初任吉林省长，主纂乡邦文献。精于文史，尤工书法，文翰秀劲，时人重之。晚岁寓居京邸，坚拒伪职，著有《憩园诗草》《筹边刍言》。世称吉林三杰。' }
+    ]
+  },
+  {
+    id: 3, name: '成多禄', era: '清末民初', theme: '诗书双绝',
+    text: '成多禄，字{1}，号澹堪，吉林永吉人，汉军旗籍。幼聪颖，八岁能吟。光绪拔贡，官绥化知府，廉明有声。民国初任教育部审核处处长。工诗善书，诗宗盛唐，书出欧颜，墨迹遍关东，时论以为诗书{2}，推为关东诗豪。晚岁寓居京师，唱酬不辍，有《澹堪诗草》。世推三杰之首。',
+    blanks: [
+      { id: 'b1', answer: '竹山', options: ['竹山', '竺山', '竹杉', '筑山'] },
+      { id: 'b2', answer: '双绝', options: ['双绝', '双絻', '双決', '双觉'] }
+    ],
+    annotation: '成多禄（1864—1928），字竹山，号澹堪，吉林永吉人，汉军旗籍。清末民初著名诗人、书法家，光绪拔贡，官绥化府知府，廉明有声，民国初任教育部审核处处长。诗书双绝，推为“关东诗豪”，世称“吉林三杰”之首。著有《澹堪诗草》。',
+    sections: [
+      { id: 's1', short: '全卷', text: '成多禄，字{1}，号澹堪，吉林永吉人，汉军旗籍。幼聪颖，八岁能吟。光绪拔贡，官绥化知府，廉明有声。民国初任教育部审核处处长。工诗善书，诗宗盛唐，书出欧颜，墨迹遍关东，时论以为诗书{2}，推为关东诗豪。晚岁寓居京师，唱酬不辍，有《澹堪诗草》。世推三杰之首。', note: '成多禄，字竹山，号澹堪，吉林永吉人，汉军旗籍。幼聪颖，八岁能吟。光绪拔贡，官绥化知府，廉明有声。民国初任教育部审核处处长。工诗善书，诗宗盛唐，书出欧颜，墨迹遍关东，时论以为诗书双绝，推为关东诗豪。晚岁寓居京师，唱酬不辍，有《澹堪诗草》。世推三杰之首。' }
+    ]
+  }
+];
+
+/* ===== 进度存取：通关状态 + 每关最高分与评级 ===== */
+const STORE_KEY = 'jl3j_repair_v2';
+function loadStore() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || { completed: [], best: {} }; }
+  catch { return { completed: [], best: {} }; }
+}
+const store = reactive(loadStore());
+function saveStore() { localStorage.setItem(STORE_KEY, JSON.stringify({ completed: store.completed, best: store.best })); }
+
+const rand = (a, b) => a + Math.random() * (b - a);
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ===== 碎片拼接配置：纸面 240×400，3列×2行 = 6块残页 ===== */
+const PW = 80, PH = 200, ROWS = 2, COLS = 3;
+/* [修改] 拼接容差：块 84×204（+4px），行列步进 78/196 → 相邻重叠 6px/4px，
+   精确铺满 240×400：无缝隙、无溢出，吸附后视觉轻微重叠 */
+const STEP_X = 78, STEP_Y = 196;
+/* [修改] 参数变量：干扰残片数（史料文本均取自 LEVELS 变量，不另编） */
+const FAKE_COUNT = 2;
+const SCATTER = [ // 各碎片散落基准偏移（相对原位）：大幅错位，散落于修复台四周
+  [-94, -54], [88, -62], [96, -40],
+  [-88, 58], [84, 66], [98, 48]
+];
+
+/* ===== [新增] 撕裂缺痕：相邻碎片共享同一缺痕模板，拼合后缺痕吻合（每次重玩重新生成） ===== */
+const TEAR_W = 84, TEAR_H = 204;   // 与 .piece 元素尺寸一致
+let tearTpl = null;
+function makeTear(len, n, amp) {
+  const a = [0];
+  for (let i = 1; i < n - 1; i++) a.push(Math.random() * amp);
+  a.push(0);
+  return a;                          // 端点恒为 0，锯齿只出现在边中间
+}
+function buildTearTpl() {
+  return {
+    T: makeTear(TEAR_W, 7, 7),                                   // 卷面顶边
+    B: makeTear(TEAR_W, 7, 7),                                   // 卷面底边
+    L: makeTear(TEAR_H, 7, 6),                                   // 卷面左边
+    R: makeTear(TEAR_H, 7, 6),                                   // 卷面右边
+    H: Array.from({ length: COLS }, () => makeTear(TEAR_W, 7, 6)), // 上下相邻共享的横撕边（每列一条）
+    V: Array.from({ length: ROWS }, () => makeTear(TEAR_H, 7, 6))  // 左右相邻共享的竖撕边（每行一条）
+  };
+}
+/* 由共享模板生成某块碎片的 clip-path 多边形（顺时针，px 坐标） */
+function tearClip(r, c) {
+  const top  = r === 0          ? tearTpl.T : tearTpl.H[c];
+  const bot  = r === ROWS - 1   ? tearTpl.B : tearTpl.H[c];
+  const left = c === 0          ? tearTpl.L : tearTpl.V[r];
+  const rgt  = c === COLS - 1   ? tearTpl.R : tearTpl.V[r];
+  const P = [];
+  for (let i = 0; i < top.length; i++)      P.push([i / (top.length - 1) * TEAR_W, top[i]]);
+  for (let i = 1; i < rgt.length; i++)      P.push([TEAR_W - rgt[i], i / (rgt.length - 1) * TEAR_H]);
+  for (let i = bot.length - 2; i >= 0; i--) P.push([i / (bot.length - 1) * TEAR_W, TEAR_H - bot[i]]);
+  for (let i = left.length - 2; i >= 1; i--)P.push([left[i], i / (left.length - 1) * TEAR_H]);
+  return 'polygon(' + P.map(pt => pt[0].toFixed(1) + 'px ' + pt[1].toFixed(1) + 'px').join(',') + ')';
+}
+/* 干扰片撕边：独立随机，不与任何真碎片吻合 */
+function fakeTearClip() {
+  const t = { T: makeTear(TEAR_W, 7, 7), B: makeTear(TEAR_W, 7, 7), L: makeTear(TEAR_H, 7, 6), R: makeTear(TEAR_H, 7, 6) };
+  const P = [];
+  for (let i = 0; i < t.T.length; i++)      P.push([i / (t.T.length - 1) * TEAR_W, t.T[i]]);
+  for (let i = 1; i < t.R.length; i++)      P.push([TEAR_W - t.R[i], i / (t.R.length - 1) * TEAR_H]);
+  for (let i = t.B.length - 2; i >= 0; i--) P.push([i / (t.B.length - 1) * TEAR_W, TEAR_H - t.B[i]]);
+  for (let i = t.L.length - 2; i >= 1; i--) P.push([t.L[i], i / (t.L.length - 1) * TEAR_H]);
+  return 'polygon(' + P.map(pt => pt[0].toFixed(1) + 'px ' + pt[1].toFixed(1) + 'px').join(',') + ')';
+}
+
+const curIdx = ref(0);
+const pieces = reactive([]);
+const filled = reactive({});
+const picker = reactive({ visible: false, blankId: null, options: [], tip: '' });
+const mistakes = reactive({});  // 各空位已错次数（每空首次为容错，不扣分）
+const penalty = ref(0);         // 计入评分的失误次数
+const revealed = ref(false);    // 碎片全部归位后整卷浮现
+const shaking = ref(false);  // 轻微抖动反馈
+const glowing = ref(false);  // 整卷柔光焕新
+const resultVisible = ref(false);
+const showNote = ref(false);
+const showComplete = ref(false);
+const resetConfirm = ref(false);   // [新增] 重置进度确认弹窗
+
+/* ===== [新增] 音效 / 拖拽 / 干扰片 / 拂尘 / 分段 / 回忆 / 结算 ===== */
+const soundOn = ref(true); let actx = null;
+const dragState = reactive({ i: -1, sx: 0, sy: 0, x: 0, y: 0, moved: false });
+const draggingIdx = ref(-1);
+const bouncers = reactive({});
+const basketHot = ref(false);
+const pasting = ref(false);
+const noteVisible = ref(false); const noteIdx = ref(0);
+const dustingIdx = ref(-1);
+const fakesTotal = ref(0); const fakesCleared = ref(0); const wrongDrops = ref(0);
+const quizRight = ref(0); const quizTotal = ref(0); let quizWrong = 0;
+const startTime = ref(0); const elapsed = ref(0); let timerId = 0;
+const recall = reactive({ visible: false, q: '', display: [], missIdx: -1, answer: '', options: [], source: '', review: false, failed: false });
+const segDoneSet = reactive({});
+
+const current = computed(() => LEVELS[curIdx.value]);
+const allDone = computed(() => LEVELS.every(l => store.completed.includes(l.id)));
+/* [新增] 真碎片全部归位（排除干扰片） */
+const allPiecesDone = computed(() => { const real = pieces.filter(x => !x.fake); return real.length > 0 && real.every(p => p.done); });
+/* [新增] 段完成：段si对应列的真碎片全部归位（单段卷=全部真碎片） */
+function segPieces(si) {
+  const n = current.value.sections.length;
+  if (n === 1) return pieces.filter(x => !x.fake);
+  return pieces.filter(x => !x.fake && x.seg === (n - 1 - si));
+}
+function segDone(si) { const ps = segPieces(si); return ps.length > 0 && ps.every(x => x.done); }
+const segDoneCount = computed(() => Object.keys(segDoneSet).length);
+const dustedCount = computed(() => pieces.filter(x => x.clean).length);
+/* [新增] 综合评级：耗时 + 干扰碎片处理 + 答题正确率（答错可回看原文重答，惩罚温和） */
+const score = computed(() => {
+  let s = 100;
+  s -= Math.min(20, Math.floor(elapsed.value / 40) * 4);   // 耗时：每满40秒减4
+  s -= wrongDrops.value * 5;                                // 干扰片误拖入拼接区
+  s -= (fakesTotal.value - fakesCleared.value) * 8;         // 残留干扰片
+  s -= quizWrong * 3;                                       // 答题失误（可回看，扣分轻）
+  return Math.max(30, s);
+});
+const grade = computed(() => score.value >= 85 ? '妙手匠人' : score.value >= 60 ? '古籍学徒' : '初修新人');
+const gradeClass = computed(() => score.value >= 85 ? 'g-perfect' : score.value >= 60 ? 'g-good' : 'g-ok');
+
+/* 解析 text 中 {n} 占位符 → 文本/填空片段 */
+const segments = computed(() => {
+  const out = []; const t = current.value.text; const re = /\{(\d+)\}/g;
+  let last = 0, m;
+  while ((m = re.exec(t))) {
+    if (m.index > last) out.push({ type: 'text', value: t.slice(last, m.index) });
+    out.push({ type: 'blank', id: 'b' + m[1] });
+    last = re.lastIndex;
+  }
+  if (last < t.length) out.push({ type: 'text', value: t.slice(last) });
+  return out;
+});
+
+const hintText = computed(() => {
+  if (fakesTotal.value > 0 && fakesCleared.value < fakesTotal.value) return '有干扰残片混入 · 请弃入废简篓';
+  if (!allPiecesDone.value) return '拖动散落残页 · 拼入拼接区复原';
+  return current.value.blanks.every(b => filled[b.id]) ? '残卷修复完成' : '残卷已复原 · 点击虚框择词补全';
+});
+
+const stageState = (lv) => ({
+  done: store.completed.includes(lv.id),
+  unlocked: lv.id === 1 || store.completed.includes(lv.id - 1),
+  best: store.best[lv.id]
+});
+
+/* ===== 碎片：构建 / 样式 / 归位 ===== */
+function buildPieces() {
+  pieces.length = 0;
+  tearTpl = buildTearTpl();          //  重新生成共享缺痕模板
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const i = r * COLS + c;
+    const [bx, by] = SCATTER[i];
+    pieces.push({
+      x: c * STEP_X, y: r * STEP_Y,   //  步进 78/196，相邻碎片重叠 6px/4px，铺满 240×400
+      dx: bx + rand(-10, 10), dy: by + rand(-9, 9),
+      r: rand(-13, 13), done: false,
+      seg: c,                 // 所属段：按列分（竖排从右向左，c2=段1,c1=段2,c0=段3）
+      dusty: false, clean: false, pasted: false,
+      clip: tearClip(r, c)    //  相邻碎片共享缺痕
+    });
+  }
+  /*  拂尘：全卷仅随机 1-2 块真碎片带尘需拂尘，其余吸附直接锁定 */
+  const dustCount = 1 + Math.floor(Math.random() * 2);
+  shuffle(pieces.filter(x => !x.fake)).slice(0, dustCount).forEach(p => { p.dusty = true; });
+  /*  干扰残片（FAKE_COUNT 块）：内容为杂字池乱序（本卷文字 + 干支纪年 + 千字文句 + 虚字，
+     仅作杂文质感，不作史料陈述），无匹配原位，只能弃入废简篓 */
+  const junkChars = shuffle((current.value.text + '甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥' +
+    '天地玄黄宇宙洪荒日月盈昃寒来暑往' + '一二三四五六七八九十百千万' + '之乎者也焉哉尔矣').replace(/[{}\d]/g, '').split('')).slice(0, 32).join('');
+  const F = [[-150, -96], [145, -118]];
+  for (let k = 0; k < FAKE_COUNT; k++) {
+    pieces.push({
+      x: 60 + k * 60, y: 90,
+      dx: F[k][0] + rand(-12, 12), dy: F[k][1] + rand(-10, 10),
+      r: rand(-16, 16), done: false, fake: true, seg: -1,
+      dusty: false, clean: false, pasted: false, junk: junkChars,
+      clip: fakeTearClip()   //  独立撕边，不与任何真碎片吻合
+    });
+  }
+  fakesTotal.value = FAKE_COUNT; fakesCleared.value = 0; wrongDrops.value = 0;
+}
+/*  干扰片乱序文本（每次打乱，明确非史料原文） */
+function pieceStyle(p) {
+  const i = pieces.indexOf(p);
+  const isDrag = dragState.i === i;
+  const done = p.done;
+  const dx = isDrag ? dragState.x - dragState.sx + p.dx : p.dx;
+  const dy = isDrag ? dragState.y - dragState.sy + p.dy : p.dy;
+  return {
+    left: p.x + 'px', top: p.y + 'px',
+    '--bgx': -p.x + 'px', '--bgy': -p.y + 'px',
+    clipPath: done ? 'none' : p.clip,   //  散落/拖动时显示缺痕，归位后撕边消失无缝拼合
+    transform: done ? 'none' : 'translate(' + dx + 'px,' + dy + 'px) rotate(' + p.r + 'deg)',
+    transition: done ? 'transform .6s cubic-bezier(.22,.7,.3,1)' : (isDrag ? 'none' : 'transform .25s ease'),
+    zIndex: isDrag ? 30 : 1
+  };
+}
+/* 内层：反向旋转抵消保持文字正立，并按偏移显示对应残卷区域 */
+function innerStyle(p) {
+  const done = p.done;
+  return {
+    left: -p.x + 'px', top: -p.y + 'px',
+    transform: done ? 'none' : 'rotate(' + (-p.r) + 'deg)',
+    transition: done ? 'transform .6s cubic-bezier(.22,.7,.3,1)' : 'none'
+  };
+}
+/* =====  拖拽：pointer 事件驱动，松手判定落点 ===== */
+function onPieceDown(i, ev) {
+  const p = pieces[i];
+  if (p.done) return;
+  dragState.i = i; dragState.moved = false;
+  dragState.sx = ev.clientX; dragState.sy = ev.clientY;
+  dragState.x = ev.clientX; dragState.y = ev.clientY;
+  draggingIdx.value = i;
+  window.addEventListener('pointermove', onDragMove);
+  window.addEventListener('pointerup', onDragUp, { once: true });
+}
+function onDragMove(ev) {
+  if (dragState.i < 0) return;
+  if (!dragState.moved && Math.hypot(ev.clientX - dragState.sx, ev.clientY - dragState.sy) > 8) dragState.moved = true;
+  if (dragState.moved) {
+    dragState.x = ev.clientX; dragState.y = ev.clientY;
+    const br = document.querySelector('.basket').getBoundingClientRect();
+    basketHot.value = ev.clientX > br.left - 10 && ev.clientX < br.right + 10 && ev.clientY > br.top - 10 && ev.clientY < br.bottom + 10;
+  }
+}
+function onDragUp(ev) {
+  const i = dragState.i; const p = i >= 0 ? pieces[i] : null;
+  dragState.i = -1; draggingIdx.value = -1;
+  window.removeEventListener('pointermove', onDragMove);
+  if (!p) return;
+  if (!dragState.moved) { bounce(p); return; }  // [修改] 单击不归位：须拖动到拼接区附近松手
+  const br = document.querySelector('.basket').getBoundingClientRect();
+  const inBasket = ev.clientX > br.left - 10 && ev.clientX < br.right + 10 && ev.clientY > br.top - 10 && ev.clientY < br.bottom + 10;
+  if (inBasket) { p.fake ? discardFake(p) : (bounce(p), sfx('err')); return; }
+  const pr = document.querySelector('.paper').getBoundingClientRect();
+  const inPaper = ev.clientX > pr.left && ev.clientX < pr.right && ev.clientY > pr.top && ev.clientY < pr.bottom;
+  if (inPaper) {
+    if (p.fake) { bounce(p); wrongDrops.value++; sfx('err'); }  //  干扰片入拼接区：抖动回弹
+    else placePiece(p);
+    return;
+  }
+  bounce(p);
+}
+function bounce(p) { const i = pieces.indexOf(p); bouncers[i] = true; setTimeout(() => { delete bouncers[i]; }, 520); }
+function discardFake(p) { pieces.splice(pieces.indexOf(p), 1); fakesCleared.value++; sfx('basket'); }
+
+/*  归位：吸附即锁定（带尘片由 buildPieces 预选，全卷仅 1-2 片）+ 分段完成 → 裱糊动画 → 段注解弹窗 */
+function placePiece(p) {
+  if (p.done) return;
+  p.done = true;
+  sfx('place');
+  checkSegment();
+}
+function checkSegment() {
+  const n = current.value.sections.length;
+  for (let si = 0; si < n; si++) {
+    if (segDoneSet[si]) continue;
+    if (segDone(si)) {
+      segDoneSet[si] = true;
+      segPieces(si).forEach(x => { x.pasted = true; });
+      pasting.value = true; sfx('paste');
+      setTimeout(() => { pasting.value = false; }, 1500);
+      setTimeout(() => { if (!noteVisible.value) { noteIdx.value = si; noteVisible.value = true; } }, 1100);
+    }
+  }
+  if (segDoneCount.value === n) { setTimeout(() => { revealed.value = true; }, 900); }
+}
+function closeNote() { noteVisible.value = false; }
+
+/*  拂尘：点击动画锁定碎片（尘除字显） */
+function dustPiece(i) {
+  const p = pieces[i];
+  if (!p.done || p.clean) return;
+  dustingIdx.value = i; sfx('dust');
+  setTimeout(() => { p.clean = true; dustingIdx.value = -1; }, 800);
+}
+
+/* ===== 文字补缺：候选 / 容错 / 判定 ===== */
+function openBlank(id) {
+  if (!allPiecesDone.value) return; // 碎片未拼合完成不可填空
+  if (filled[id]) return;
+  const b = current.value.blanks.find(x => x.id === id);
+  picker.blankId = id; picker.options = shuffle(b.options); picker.tip = ''; picker.visible = true;
+}
+function pick(opt) {
+  const b = current.value.blanks.find(x => x.id === picker.blankId);
+  if (opt === b.answer) {
+    filled[b.id] = opt;               // 答对：填入文字 + 墨迹动画
+    picker.tip = ''; picker.visible = false;
+    quizTotal.value++; quizRight.value++; sfx('ok');
+    if (current.value.blanks.every(x => filled[x.id])) openRecall();  // [新增] 填空完成→碎片回忆题
+  } else {
+    const n = (mistakes[b.id] || 0) + 1;  // 每空位首次选错为容错，不扣分
+    mistakes[b.id] = n;
+    if (n > 1) penalty.value++;           // 再次选错方计入评分
+    quizTotal.value++; quizWrong++;
+    picker.tip = n === 1 ? '字形有误，可回看原文再择' : '仍非本字，可回看原文再择';
+    shaking.value = true;
+    setTimeout(() => (shaking.value = false), 500);
+  }
+}
+function closePicker() { picker.visible = false; }
+
+/*  碎片回忆题：缺字出自本卷复原文本，答错可回看原文重答（不关闭弹窗） */
+function openRecall() {
+  const r = current.value.recall;
+  if (!r) { finishLevel(); return; }
+  recall.answer = r.answer; recall.source = r.source;
+  recall.options = shuffle(r.options.slice());
+  recall.display = r.q.split(''); recall.missIdx = r.q.indexOf('*');
+  recall.review = false; recall.failed = false;
+  recall.visible = true;
+}
+function pickRecall(opt) {
+  if (opt === recall.answer) {
+    recall.visible = false;
+    quizTotal.value++; quizRight.value++; sfx('ok');
+    finishLevel();
+  } else {
+    quizTotal.value++; quizWrong++; sfx('err');
+    recall.failed = true; recall.review = true;  // 温和：直接展示原文，可继续重选
+  }
+}
+function closeRecall() { recall.visible = false; }
+
+/*  全部填空+回忆完成：整卷柔光焕新 → 结算纪念卡 */
+function finishLevel() {
+  setTimeout(() => {
+    glowing.value = true;
+    setTimeout(() => {
+      glowing.value = false;
+      stopTimer();
+      resultVisible.value = true;
+      Vue.nextTick(() => drawCard());
+    }, 1400);
+  }, 900);
+}
+
+function confirmResult() {
+  const lv = current.value;
+  if (!store.completed.includes(lv.id)) store.completed.push(lv.id);
+  const prev = store.best[lv.id];
+  if (!prev || score.value > prev.score) store.best[lv.id] = { score: score.value, grade: grade.value };
+  saveStore();
+  resultVisible.value = false;
+  if (allDone.value) showComplete.value = true;
+  else if (curIdx.value < LEVELS.length - 1) { curIdx.value++; resetLevel(); }
+}
+function closeResult() { resultVisible.value = false; }
+
+function goLevel(i) {
+  const lv = LEVELS[i];
+  if (lv.id !== 1 && !store.completed.includes(lv.id - 1)) return; // 未解锁
+  showComplete.value = false; curIdx.value = i; resetLevel();
+}
+function resetLevel() {
+  buildPieces();                        // 每次重玩碎片位置随机
+  Object.keys(filled).forEach(k => delete filled[k]);
+  penalty.value = 0; quizWrong = 0; quizTotal.value = 0; quizRight.value = 0;
+  Object.keys(mistakes).forEach(k => delete mistakes[k]);
+  Object.keys(segDoneSet).forEach(k => delete segDoneSet[k]);
+  revealed.value = false; pasting.value = false;
+  noteVisible.value = false; recall.visible = false;
+  dragState.i = -1; draggingIdx.value = -1; basketHot.value = false;
+  picker.visible = false; picker.tip = '';
+  resultVisible.value = false;
+  shaking.value = false; glowing.value = false;
+  startTimer();
+}
+function restart() { showComplete.value = false; curIdx.value = 0; resetLevel(); }
+/*  重置全部进度：清空通关与最佳纪录，回第 1 关重新开始 */
+function resetProgress() {
+  store.completed.splice(0, store.completed.length);
+  Object.keys(store.best).forEach(k => { delete store.best[k]; });
+  saveStore();
+  showComplete.value = false;
+  curIdx.value = 0;
+  resetLevel();
+  resetConfirm.value = false;
+}
+
+/* =====  计时 / 音效 / 纪念卡 ===== */
+function startTimer() {
+  elapsed.value = 0;
+  clearInterval(timerId);
+  startTime.value = Date.now();
+  timerId = setInterval(() => { elapsed.value = Math.floor((Date.now() - startTime.value) / 1000); }, 1000);
+}
+function stopTimer() { clearInterval(timerId); elapsed.value = Math.floor((Date.now() - startTime.value) / 1000); }
+function fmtTime(sec) { const m = Math.floor(sec / 60), s = sec % 60; return (m ? m + '分' : '') + s + '秒'; }
+function toggleSound() { soundOn.value = !soundOn.value; }
+function sfx(kind) {
+  if (!soundOn.value) return;
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime;
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    const cfg = { ok: [520, 780, .12, .2], place: [320, 0, .08, .14], err: [160, 0, .14, .22], dust: [900, 1200, .1, .18], basket: [220, 0, .1, .16], paste: [380, 0, .12, .24] }[kind] || [400, 0, .1, .2];
+    o.type = 'sine';
+    o.frequency.setValueAtTime(cfg[0], t);
+    if (cfg[1]) o.frequency.exponentialRampToValueAtTime(cfg[1], t + .12);
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.exponentialRampToValueAtTime(cfg[2], t + .01);
+    g.gain.exponentialRampToValueAtTime(.0001, t + cfg[3]);
+    o.start(t); o.stop(t + cfg[3] + .02);
+  } catch (e) {}
+}
+const cardCanvas = ref(null);
+function drawCard() {
+  const cv = cardCanvas.value; if (!cv) return;
+  const c = cv.getContext('2d');
+  c.fillStyle = '#f2e6c8'; c.fillRect(0, 0, 640, 400);
+  c.strokeStyle = '#b8964e'; c.lineWidth = 3; c.strokeRect(9, 9, 622, 382); c.lineWidth = 1; c.strokeRect(15, 15, 610, 370);
+  c.textAlign = 'center';
+  c.fillStyle = '#6e1f1f';
+  c.font = '28px "KaiTi","STKaiti","楷体",serif';
+  c.fillText('吉林三杰 · 古籍残卷修复', 320, 62);
+  c.font = '22px "KaiTi","STKaiti","楷体",serif';
+  c.fillText(current.value.name + ' · 纪念卡', 320, 102);
+  c.font = '38px "KaiTi","STKaiti","楷体",serif';
+  c.fillStyle = grade.value === '妙手匠人' ? '#b8964e' : '#8c2f2f';
+  c.fillText('「' + grade.value + '」', 320, 160);
+  c.fillStyle = '#2b2620';
+  c.font = '19px "KaiTi","STKaiti","楷体",serif';
+  c.fillText('综合评级分 ' + score.value + ' / 100', 320, 206);
+  c.fillText('用时 ' + fmtTime(elapsed.value) + ' · 干扰片 ' + fakesCleared.value + '/' + fakesTotal.value + ' 弃简', 320, 240);
+  c.fillText('答题正确 ' + quizRight.value + ' / ' + quizTotal.value + ' · 拂尘复原 ' + dustedCount.value + ' 片', 320, 274);
+  c.save(); c.translate(560, 330); c.rotate(.12);
+  c.strokeStyle = '#8c2f2f'; c.strokeRect(-24, -24, 48, 48);
+  c.fillStyle = '#8c2f2f'; c.font = '15px "KaiTi","STKaiti","楷体",serif'; c.fillText('匠心', 0, 6);
+  c.restore();
+  c.fillStyle = 'rgba(43,38,32,.45)'; c.font = '12px "KaiTi","STKaiti","楷体",serif';
+  c.fillText('吉林三杰互动展厅 · ' + new Date().toLocaleDateString('zh-CN'), 320, 366);
+}
+let holdT = 0;
+function cardHold() { clearTimeout(holdT); holdT = setTimeout(saveCard, 600); }
+function cardHoldClear() { clearTimeout(holdT); }
+function saveCard() {
+  const cv = cardCanvas.value; if (!cv) return;
+  const a = document.createElement('a');
+  a.href = cv.toDataURL('image/png'); a.download = current.value.name + '_纪念卡.png';
+  a.click();
+}
+
+resetLevel();
+showComplete.value = false; // 刷新不自动弹通关页，由横幅入口进入
+
+createApp({
+  setup() {
+    return { LEVELS, curIdx, current, segments, pieces, filled, picker, penalty, revealed, shaking, glowing, resultVisible, showComplete, allDone, allPiecesDone, score, grade, gradeClass, hintText, stageState, pieceStyle, innerStyle, openBlank, pick, closePicker, confirmResult, goLevel, restart, resetConfirm, resetProgress,
+      soundOn, toggleSound, onPieceDown, draggingIdx, bouncers, basketHot, dustPiece, dustingIdx, pasting,
+      noteVisible, noteIdx, closeNote, segDone, recall, pickRecall, closeRecall,
+      fakesCleared, fakesTotal, quizRight, quizTotal, elapsed, fmtTime, dustedCount, closeResult,
+      cardCanvas, cardHold, cardHoldClear };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

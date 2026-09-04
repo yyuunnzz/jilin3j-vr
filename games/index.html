@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>吉林三杰互动展厅</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { min-height: 100%; }
+:root {
+  --ink: #2b2620;
+  --red: #8c2f2f; --red-dark: #6e1f1f; --red-deep: #4a1414;
+  --gold: #b88a44; --paper-hi: #f2e7c8; --paper: #e9d6a9; --paper-lo: #dcc08f;
+}
+body {
+  font-family: "KaiTi", "STKaiti", "楷体", "STSong", "Songti SC", "SimSun", serif;
+  color: var(--ink); user-select: none;
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 42px 22px; overflow: hidden;
+  background:
+    radial-gradient(ellipse at 16% 12%, rgba(140,47,47,.22), transparent 55%),
+    radial-gradient(ellipse at 88% 84%, rgba(184,138,68,.16), transparent 55%),
+    radial-gradient(ellipse at 55% 46%, rgba(120,90,50,.08), transparent 60%),
+    linear-gradient(160deg, #2b1f12, #170f07 72%);
+  background-attachment: fixed;
+}
+
+/* ===== 背景：水墨墨点 + 漂浮残页 + 顶部聚光 ===== */
+.ink { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .5; filter: blur(2px); }
+.ink::before, .ink::after { content: ''; position: absolute; border-radius: 50%; }
+.ink::before { width: 150px; height: 150px; right: 6%; top: 12%;
+  background: radial-gradient(circle, rgba(6,4,0,.55) 0 18%, rgba(6,4,0,.25) 42%, transparent 68%); }
+.ink::after { width: 110px; height: 110px; left: 8%; bottom: 14%;
+  background: radial-gradient(circle, rgba(6,4,0,.4) 0 16%, rgba(6,4,0,.18) 40%, transparent 66%); }
+.lamp { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse 78% 42% at 50% 4%, rgba(255,214,140,.13), transparent 62%); }
+
+.flakes i { position: fixed; z-index: 0; pointer-events: none;
+  background: rgba(241,230,198,.08);
+  clip-path: polygon(0 5%, 22% 0, 46% 3%, 72% 0, 100% 5%, 98% 32%, 100% 62%, 96% 92%, 70% 100%, 46% 97%, 22% 100%, 2% 92%, 0 62%, 3% 32%);
+  animation: drift 11s ease-in-out infinite; }
+.flakes i:nth-child(1) { width: 88px; height: 128px; top: 13%; left: 5%; --r: -13deg; animation-delay: -2s; }
+.flakes i:nth-child(2) { width: 64px; height: 96px; top: 58%; left: 11%; --r: 11deg; animation-delay: -5s; }
+.flakes i:nth-child(3) { width: 108px; height: 156px; top: 18%; right: 4%; --r: 9deg; animation-delay: -7s; }
+.flakes i:nth-child(4) { width: 56px; height: 84px; bottom: 9%; right: 12%; --r: -7deg; animation-delay: -3s; }
+.flakes i:nth-child(5) { width: 42px; height: 62px; top: 42%; left: 47%; --r: 18deg; animation-delay: -9s; }
+@keyframes drift { 0%, 100% { transform: translateY(0) rotate(var(--r)); } 50% { transform: translateY(-24px) rotate(calc(var(--r) + 5deg)); } }
+
+/* ===== 卷轴骨架 ===== */
+.wrap { position: relative; z-index: 1; width: min(92vw, 440px); }
+.axis { position: absolute; top: 14px; bottom: 14px; width: 13px; z-index: 3;
+  background: linear-gradient(90deg, #2c1908, #5b3a18 48%, #241304);
+  border-radius: 7px; box-shadow: 0 10px 22px rgba(0,0,0,.55), inset 0 0 5px rgba(255,224,160,.22); }
+.axis-l { left: -17px; } .axis-r { right: -17px; }
+.axis i { position: absolute; left: 50%; transform: translateX(-50%); width: 26px; height: 11px; border-radius: 6px;
+  background: linear-gradient(90deg, #3a2410, #8a6428 50%, #3a2410);
+  box-shadow: 0 3px 6px rgba(0,0,0,.45), inset 0 0 3px rgba(255,224,160,.35); }
+.axis-l i:first-child { top: -5px; } .axis-l i:last-child { bottom: -5px; }
+.axis-r i:first-child { top: -5px; } .axis-r i:last-child { bottom: -5px; }
+
+/* 左侧竖排书签 */
+.hanging { position: absolute; left: -38px; top: 46px; z-index: 4;
+  writing-mode: vertical-rl; text-orientation: upright; letter-spacing: .55em;
+  font-size: 12px; color: rgba(243,231,200,.92);
+  background: linear-gradient(180deg, #7a2323, #5c1616);
+  border: 1px solid #431010; padding: 16px 8px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.45), inset 0 0 0 1px rgba(243,231,200,.18); }
+
+/* ===== 主卡片：撕裂宣纸残卷 ===== */
+.hall {
+  position: relative; text-align: center; padding: 48px 26px 36px;
+  background:
+    radial-gradient(ellipse at 82% 8%, rgba(140,47,47,.08), transparent 45%),
+    radial-gradient(ellipse at 12% 92%, rgba(90,60,20,.10), transparent 50%),
+    repeating-linear-gradient(0deg, rgba(120,80,25,.022) 0 2px, transparent 2px 9px),
+    linear-gradient(180deg, var(--paper-hi), var(--paper) 55%, var(--paper-lo));
+  box-shadow: 0 18px 50px rgba(0,0,0,.5), inset 0 0 46px rgba(120,80,25,.14);
+  clip-path: polygon(
+    1% 2%, 5% .4%, 12% 1.6%, 20% .3%, 29% 1.5%, 38% .4%, 47% 1.6%, 56% .3%, 65% 1.5%, 74% .4%, 83% 1.6%, 92% .4%, 98% 2%,
+    100% 10%, 99% 22%, 100% 34%, 98.5% 46%, 100% 58%, 99% 70%, 100% 82%, 98.5% 92%,
+    92% 99.6%, 83% 98.4%, 74% 100%, 65% 98.5%, 56% 100%, 47% 98.4%, 38% 100%, 29% 98.5%, 20% 100%, 12% 98.4%, 5% 99.6%,
+    .6% 92%, 1.4% 80%, .4% 68%, 1.5% 56%,     .3% 44%, 1.4% 32%, .4% 20%, 1.5% 10% );
+animation: hallIn .8s cubic-bezier(.16,.9,.3,1) both; }
+@keyframes hallIn { from { opacity: 0; transform: translateY(28px) scale(.97); }
+to { opacity: 1; transform: none; } }
+
+/* 朱红印章（右起竖读：吉林/三杰） */
+.seal { position: absolute; right: 20px; top: 22px; z-index: 2; display: grid;
+  grid-template-areas: "s1 s2" "s3 s4"; gap: 3px;
+  width: 54px; height: 54px; padding: 7px; transform: rotate(5deg);
+  color: rgba(140,47,47,.9); background: rgba(140,47,47,.07);
+  border: 2px solid rgba(140,47,47,.72);
+  box-shadow: 0 2px 6px rgba(60,15,15,.2);
+  animation: sealStamp 1s .5s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes sealStamp { 0% { opacity: 0; transform: rotate(5deg) scale(1.8); }
+  55% { opacity: 1; transform: rotate(-3deg) scale(.95); }
+  100% { opacity: 1; transform: rotate(5deg) scale(1); } }
+.seal b { font-weight: normal; font-size: 14px; line-height: 1.15; text-align: center; }
+.seal b:nth-child(1) { grid-area: s2; } .seal b:nth-child(2) { grid-area: s4; }
+.seal b:nth-child(3) { grid-area: s1; } .seal b:nth-child(4) { grid-area: s3; }
+
+.chrono { font-size: 11px; letter-spacing: .5em; color: rgba(43,38,32,.55); margin-bottom: 10px; }
+.chrono::before, .chrono::after { content: '◆'; font-size: 7px; color: rgba(184,138,68,.65); vertical-align: 2px; margin: 0 7px; }
+h1 { font-size: 38px; font-weight: normal; letter-spacing: .26em; color: var(--red-dark);
+  margin-bottom: 6px;
+  background: linear-gradient(180deg, #4a3018 0%, #8c2f2f 55%, #6e1f1f);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,.4)) drop-shadow(0 4px 12px rgba(120,50,10,.35));
+  animation: fadeUp .7s .15s cubic-bezier(.2,.8,.3,1) both; }
+.sub { font-size: 14px; letter-spacing: .62em; color: rgba(43,38,32,.72); text-indent: .62em;
+  animation: fadeUp .7s .3s cubic-bezier(.2,.8,.3,1) both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+.rule { display: flex; align-items: center; gap: 10px; width: 72%; margin: 20px auto 18px; }
+.rule::before, .rule::after { content: ''; flex: 1; height: 1px; }
+.rule::before { background: linear-gradient(90deg, transparent, rgba(140,47,47,.55)); }
+.rule::after { background: linear-gradient(90deg, rgba(140,47,47,.55), transparent); }
+.rule::marker { content: none; }
+.rule i { width: 7px; height: 7px; border: 1.5px solid var(--red); transform: rotate(45deg); flex: none; }
+
+.quote { font-size: 15px; line-height: 2.1; letter-spacing: .22em;
+  color: rgba(43,38,32,.72); margin-bottom: 4px;
+  animation: fadeUp .7s .45s cubic-bezier(.2,.8,.3,1) both; }
+.quote::before { content: '「'; margin-right: 2px; }
+.quote::after { content: '」'; margin-left: 2px; }
+.quote::before, .quote::after { color: rgba(140,47,47,.5); }
+
+/* 三杰残页卡片 */
+.sages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 24px 0 26px; }
+.sage { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px;
+  text-decoration: none; padding: 16px 4px 13px; color: var(--ink);
+  background: linear-gradient(180deg, #f0e3c0, #dfc698);
+  box-shadow: 0 4px 12px rgba(40,25,8,.28), inset 0 0 0 1px rgba(120,80,25,.12);
+  clip-path: polygon(4% 5%, 14% 1%, 28% 4%, 50% 1%, 72% 4%, 88% 1%, 98% 5%, 99% 38%, 97% 62%, 99% 90%, 95% 98%, 78% 97%, 58% 99%, 40% 97%, 22% 99%, 4% 97%, 1% 88%, 3% 60%, 1% 40%);
+  transition: transform .15s ease, box-shadow .2s ease;
+  animation: fadeUp .6s var(--d, .5s) cubic-bezier(.2,.8,.3,1) both; }
+.sage::before { content: attr(data-no); position: absolute; left: 7px; top: 6px;
+  font-size: 10px; color: rgba(140,47,47,.7); border: 1px solid rgba(140,47,47,.38);
+  padding: 0 3px; transform: rotate(-4deg); }
+.sage::after { content: ''; position: absolute; right: 0; bottom: 0; width: 16px; height: 16px;
+  background: linear-gradient(315deg, rgba(120,80,25,.25) 0 48%, rgba(255,255,255,.5) 49% 51%, rgba(120,80,25,.08) 52%); }
+.sage:nth-child(2) { --d: .62s; } .sage:nth-child(3) { --d: .74s; }
+.sage:active { transform: translateY(2px); box-shadow: 0 2px 6px rgba(40,25,8,.3), inset 0 0 0 1px rgba(120,80,25,.12); }
+.sage b { font-size: 20px; font-weight: normal; letter-spacing: .16em; color: var(--red-dark); }
+.sage i { font-style: normal; font-size: 11px; letter-spacing: .04em; color: rgba(43,38,32,.62); line-height: 1.5; }
+
+/* 进入按钮：印鉴样式 */
+.enter { display: inline-block; position: relative; overflow: hidden; text-decoration: none;
+  font-family: inherit; font-size: 16px; letter-spacing: .28em; text-indent: .28em;
+  color: #f3e7c8; background: linear-gradient(180deg, #8a2a2a, #641a1a);
+  border: 1px solid #431111; padding: 14px 26px;
+  box-shadow: inset 0 0 0 1px rgba(243,231,200,.3), 0 4px 0 #431111, 0 10px 20px rgba(30,12,2,.4);
+  animation: fadeUp .7s .86s cubic-bezier(.2,.8,.3,1) both; }
+.enter b { font-weight: normal; font-size: 13px; letter-spacing: .18em; margin-right: 6px;
+  color: rgba(243,231,200,.72); }
+.enter .shine { position: absolute; top: 0; bottom: 0; left: -70%; width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(243,231,200,.28), transparent);
+  transform: skewX(-18deg); animation: shine 3.8s 2s infinite; }
+@keyframes shine { 0%, 45% { left: -70%; } 75%, 100% { left: 135%; } }
+.enter::before, .enter::after { content: ''; position: absolute; width: 11px; height: 11px;
+  border: 1px solid rgba(243,231,200,.55); }
+.enter::before { top: 5px; left: 5px; border-right: none; border-bottom: none; }
+.enter::after { bottom: 5px; right: 5px; border-left: none; border-top: none; }
+.enter:active { transform: translateY(2px); box-shadow: inset 0 0 0 1px rgba(243,231,200,.3), 0 2px 0 #431111; }
+
+.more { display: inline-block; margin-top: 28px; font-size: 11px; letter-spacing: .3em;
+  color: rgba(140,47,47,.62); border: 1px solid rgba(140,47,47,.4);
+  padding: 4px 10px 3px; transform: rotate(-3deg);
+  box-shadow: 0 2px 6px rgba(60,15,15,.12);
+  animation: fadeUp .7s 1s cubic-bezier(.2,.8,.3,1) both; }
+
+/* 窄屏适配 */
+@media (max-width: 420px) {
+  .axis, .hanging { display: none; }
+  body { padding: 26px 14px; }
+  .hall { padding: 42px 18px 32px; }
+  .sage i { font-size: 10px; }
+}
+
+/* ===== [端口] 游戏 iframe 宿主弹层 ===== */
+.frame-overlay { position: fixed; inset: 0; z-index: 200; display: none; background: #170f07; }
+.frame-overlay.open { display: block; }
+.frame-overlay iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+/* 游戏二入口：罗盘文脉探索 */
+.enter.second { margin-top: 16px; background: linear-gradient(180deg, #6b5520, #4a3a14); border-color: #34270c; box-shadow: inset 0 0 0 1px rgba(243,231,200,.3), 0 4px 0 #34270c, 0 10px 20px rgba(30,12,2,.4); }
+.enter.locked { opacity: .55; cursor: not-allowed; filter: grayscale(.35); }
+</style>
+</head>
+<body>
+<div class="ink"></div>
+<div class="lamp"></div>
+<div class="flakes"><i></i><i></i><i></i><i></i><i></i></div>
+
+<div class="wrap">
+  <span class="hanging">文脉 · 永吉</span>
+  <div class="axis axis-l"><i></i><i></i></div>
+  <main class="hall">
+    <span class="seal"><b>吉</b><b>林</b><b>三</b><b>杰</b></span>
+    <p class="chrono">光绪 · 永吉</p>
+    <h1>吉林三杰</h1>
+    <p class="sub">互 动 展 厅</p>
+    <div class="rule"><i></i></div>
+    <p class="quote">残卷虽缺，斯文不坠；<br>墨痕犹存，先贤可寻。</p>
+    <div class="sages">
+      <a class="sage" data-no="壹" href="javascript:void(0)" onclick="openGame('game-repair/index.html')"><b>宋小濂</b><i>字铁梅<br>晚号逸臣</i></a>
+      <a class="sage" data-no="贰" href="javascript:void(0)" onclick="openGame('game-repair/index.html')"><b>徐鼐霖</b><i>字敬宜<br>号憩园</i></a>
+      <a class="sage" data-no="叁" href="javascript:void(0)" onclick="openGame('game-repair/index.html')"><b>成多禄</b><i>字竹山<br>号澹堪</i></a>
+    </div>
+    <a class="enter" href="javascript:void(0)" onclick="openGame('game-repair/index.html')"><i class="shine"></i><b>进入</b>古籍残卷修复</a>
+    <a id="game2Enter" class="enter second" href="javascript:void(0)" onclick="openGame2()"><i class="shine"></i><b>进入</b>罗盘文脉探索</a>
+    <p class="more" id="game2Tip">通关「古籍残卷修复」三卷后解锁</p>
+  </main>
+  <div class="axis axis-r"><i></i><i></i></div>
+</div>
+
+<div class="frame-overlay" id="frameOverlay">
+  <iframe id="gameFrame" title="游戏" allow="autoplay"></iframe>
+</div>
+
+<script>
+  /* ===== [端口] 游戏接入：iframe 宿主 + closeGame 处理 + 跨游戏解锁 ===== */
+  function repairDone() {
+    try {
+      var s = JSON.parse(localStorage.getItem('jl3j_repair_v2') || '{}');
+      var c = s.completed || [];
+      return [1, 2, 3].every(function (id) { return c.indexOf(id) >= 0; });
+    } catch (e) { return false; }
+  }
+
+  function updateGame2() {
+    var unlocked = repairDone();
+    var btn = document.getElementById('game2Enter');
+    var tip = document.getElementById('game2Tip');
+    if (!btn) return;
+    if (unlocked) { btn.classList.remove('locked'); tip.textContent = '罗盘文脉探索 · 已解锁'; }
+    else { btn.classList.add('locked'); tip.textContent = '通关「古籍残卷修复」三卷后解锁'; }
+  }
+
+  function openGame(url) {
+    document.getElementById('gameFrame').src = url;
+    document.getElementById('frameOverlay').classList.add('open');
+  }
+
+  function openGame2() {
+    if (!repairDone()) { updateGame2(); return; }
+    openGame('game-sinan/index.html');
+  }
+
+  window.addEventListener('message', function (e) {
+    if (e.data === 'closeGame') {
+      document.getElementById('frameOverlay').classList.remove('open');
+      document.getElementById('gameFrame').src = 'about:blank';
+      updateGame2();
+    }
+  });
+
+  updateGame2();
+</script>
+</body>
+</html>

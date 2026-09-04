@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>司南问径・三杰行旅</title>
+  <style>
+    :root {
+      --ink: #182c38;
+      --blue: #173e54;
+      --blue-dark: #0d2b3d;
+      --gold: #d6a94b;
+      --gold-light: #f3d98b;
+      --red: #a7473d;
+      --cream: #f6efd9;
+      --paper: #fffaf0;
+      --mist: rgba(238, 246, 241, .72);
+      --shadow: 0 16px 45px rgba(14, 39, 52, .2);
+      --paper-bg: #f4e8cf;
+      --paper-dark: #e8d9bd;
+      --ink-warm: #2e2b1f;
+      --cinnabar: #b3423d;
+      --bronze: #8a623a;
+      --bronze-light: #c9a66b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      color: var(--ink-warm);
+      font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(241, 210, 142, .35), transparent 28%),
+        radial-gradient(circle at 90% 80%, rgba(36, 99, 109, .3), transparent 30%),
+        linear-gradient(135deg, #e8dfc9 0%, #c6d8d1 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .22;
+      background-image:
+        repeating-linear-gradient(0deg, transparent 0 4px, rgba(63, 59, 39, .08) 5px),
+        repeating-linear-gradient(90deg, transparent 0 6px, rgba(63, 59, 39, .04) 7px);
+      mix-blend-mode: multiply;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .18;
+      background:
+        radial-gradient(circle at 10% 20%, rgba(180, 140, 90, .45), transparent 24%),
+        radial-gradient(circle at 85% 75%, rgba(60, 90, 110, .35), transparent 26%),
+        url("data:image/svg+xml,%3Csvg width='280' height='280' viewBox='0 0 280 280' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 140 Q70 90 140 140 T280 140' fill='none' stroke='%23b8956a' stroke-width='1' opacity='.18'/%3E%3Cpath d='M140 0 Q90 70 140 140 T140 280' fill='none' stroke='%23b8956a' stroke-width='1' opacity='.12'/%3E%3C/svg%3E");
+      background-size: 280px 280px;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(96vw, 410px);
+      max-height: 94vh;
+      margin: 0 auto;
+      padding: 10px;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .topbar {
+      min-height: 62px;
+      padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,.65);
+      border-radius: 14px;
+      background: rgba(255, 252, 239, .72);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-seal {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: var(--gold-light);
+      background: var(--red);
+      border: 2px double var(--gold-light);
+      font-size: 18px;
+      box-shadow: 0 4px 12px rgba(103, 40, 28, .25);
+    }
+
+    h1, h2, h3, p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 2px;
+      letter-spacing: 2px;
+      font-size: clamp(18px,4vw,22px);
+    }
+
+    .subtitle {
+      color: #6b6250;
+      font-size: 12px;
+    }
+
+    .restart-top-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: #2b5b78;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .back-hall-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: var(--red);
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .panel {
+      border: 1px solid rgba(255,255,255,.72);
+      border-radius: 16px;
+      background: rgba(255, 252, 241, .82);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .game-panel {
+      min-height: unset;
+      max-height: calc(94vh - 110px);
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .chapter-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .chapter-label {
+      color: var(--red);
+      letter-spacing: 1px;
+      font-size: 13px;
+    }
+
+    .chapter-title {
+      font-size: clamp(18px,3vw,22px);
+      margin: 4px 0 0;
+    }
+
+    .score {
+      white-space: nowrap;
+      color: #8d641c;
+      font-size: 15px;
+    }
+
+    .progress {
+      height: 6px;
+      border-radius: 99px;
+      background: #ded7c1;
+      overflow: hidden;
+      margin: 10px 0 12px;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--red), var(--gold));
+      transition: width .5s ease;
+    }
+
+    .riddle {
+      position: relative;
+      padding: 12px 14px;
+      border-left: 3px solid var(--gold);
+      border-radius: 6px 10px 10px 6px;
+      color: #3d3a2f;
+      background: linear-gradient(90deg, rgba(246, 225, 166, .5), rgba(255,255,255,.35));
+      line-height: 1.7;
+      font-size: clamp(14px,2vw,16px);
+      letter-spacing: 0.5px;
+    }
+
+    .riddle::before {
+      content: "“";
+      position: absolute;
+      left: 4px;
+      top: -6px;
+      color: var(--gold);
+      font: bold 32px Georgia;
+    }
+
+    .riddle-line {
+      display: block;
+    }
+
+    .compass-wrap {
+      position: relative;
+      width: min(280px,68vw);
+      aspect-ratio: 1;
+      margin: 12px auto;
+      display: grid;
+      place-items: center;
+    }
+
+    .compass-shadow {
+      position: absolute;
+      inset: 5%;
+      border-radius: 50%;
+      background: rgba(19, 47, 58, .25);
+      filter: blur(12px);
+      transform: translateY(8px);
+    }
+
+    .compass {
+      position: relative;
+      width: 92%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 10px double var(--gold);
+      background:
+        radial-gradient(circle, #f0e4bb 0 12%, transparent 12.5%),
+        repeating-conic-gradient(from -22.5deg, rgba(255,255,255,.18) 0deg 43deg, rgba(17,60,73,.2) 43deg 45deg),
+        radial-gradient(circle, #286077, #153e51 72%, #0b293b);
+      box-shadow:
+        inset 0 0 0 5px rgba(251, 224, 143, .3),
+        inset 0 0 30px rgba(0,0,0,.5),
+        0 4px 14px rgba(10, 35, 45, .35);
+      touch-action: none;
+      user-select: none;
+    }
+
+    .compass::after {
+      content: "";
+      position: absolute;
+      inset: 7%;
+      border: 1px solid rgba(246, 217, 132, .55);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .fixed-needle {
+      position: absolute;
+      z-index: 10;
+      top: 1%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      transform: translateX(-50%);
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-bottom: 30px solid var(--gold);
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
+    }
+
+    .fixed-needle::after {
+      content: "天针";
+      position: absolute;
+      top: -22px;
+      left: -11px;
+      width: 22px;
+      color: #7d5113;
+      font-size: 9px;
+      text-align: center;
+    }
+
+    .bottom-needle {
+      position: absolute;
+      z-index: 10;
+      bottom: 1%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      transform: translateX(-50%) rotate(180deg);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 22px solid rgba(243, 217, 139, .8);
+      display: none;
+    }
+
+    .ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      transition: transform .35s cubic-bezier(.2,.75,.25,1);
+    }
+
+    /* ========= 修改：文字移入罗盘内部，向内缩短半径 ========= */
+    .direction {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 38px;
+      height: 38px;
+      margin: -19px;
+      text-align: center;
+      color: var(--gold-light);
+      transform:
+        rotate(var(--angle))
+        translateY(-98px)
+        rotate(calc(var(--angle) * -1));
+      font-size: 13px;
+      line-height: 1.25;
+      text-shadow: 0 2px 3px #091f2b;
+      pointer-events: none;
+    }
+
+    .direction b {
+      display: block;
+      font-size: 15px;
+    }
+
+    .direction small {
+      display: block;
+      font-size: 10px;
+      opacity: .85;
+    }
+
+    .center-seal {
+      position: absolute;
+      z-index: 8;
+      left: 50%;
+      top: 50%;
+      width: 72px;
+      height: 72px;
+      margin: -36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #713f23;
+      background:
+        radial-gradient(circle, #f9e9a8, #c78d37 74%, #805620);
+      border: 4px solid #edd17d;
+      box-shadow: inset 0 0 8px rgba(91, 46, 14, .5), 0 2px 6px #112b36;
+      font-size: 17px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .center-seal small {
+      display: block;
+      font-size: 9px;
+    }
+
+    .goal {
+      display: none;
+      position: absolute;
+      z-index: 7;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin-left: -8px;
+      border: 2px solid white;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 0 3px rgba(214, 169, 75, .7), 0 0 12px #f4d77e;
+    }
+
+    .goal.top {
+      top: 9%;
+    }
+
+    .goal.bottom {
+      bottom: 9%;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .control-btn,
+    .primary-btn,
+    .secondary-btn {
+      border: 1px solid #b58b3b;
+      border-radius: 7px;
+      padding: 8px 12px;
+      color: #4e371c;
+      background: linear-gradient(#fff0b9, #d4a849);
+      box-shadow: 0 2px 0 #9a7029, 0 4px 8px rgba(61, 42, 22, .16);
+      transition: transform .15s, filter .15s;
+      font-size: 14px;
+    }
+
+    .control-btn:active,
+    .primary-btn:active,
+    .secondary-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #9a7029;
+    }
+
+    .control-btn {
+      width: 40px;
+      font-size: 18px;
+      padding: 6px 0;
+    }
+
+    .primary-btn {
+      min-width: 110px;
+    }
+
+    .secondary-btn {
+      color: var(--blue);
+      border-color: #78959a;
+      background: #e3eee8;
+      box-shadow: 0 2px 0 #9bb7ad;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 10px;
+      color: #6c5c39;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .status.success {
+      color: #28734e;
+    }
+
+    .status.error {
+      color: var(--red);
+      animation: tremble .24s linear 2;
+    }
+
+    @keyframes tremble {
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
+    /* ========= 修改印藏夹：固定在手机屏幕可视区右下方 ========= */
+    .yinzang-folder {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 30;
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #d4a849, #8a623a);
+      color: #fffaf0;
+      border: 2px solid #b8873c;
+      box-shadow: 0 3px 10px rgba(91, 46, 14, .45);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: transform .2s ease;
+    }
+
+    .yinzang-folder:hover {
+      transform: scale(1.08);
+    }
+
+    .yinzang-drawer {
+      position: fixed;
+      right: -100%;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+      z-index: 29;
+      background: rgba(255, 250, 240, .97);
+      border-left: 1px solid rgba(184, 135, 60, .35);
+      box-shadow: -8px 0 25px rgba(14, 39, 52, .25);
+      transition: right .35s ease;
+      padding: 18px 16px;
+      overflow-y: auto;
+    }
+
+    .yinzang-drawer.open {
+      right: 0;
+    }
+
+    .yinzang-drawer h2 {
+      margin-bottom: 14px;
+      color: var(--blue);
+      border-bottom: 1px solid #dacda9;
+      padding-bottom: 6px;
+    }
+
+    .history-box {
+      min-height: 100px;
+      line-height: 1.7;
+      color: #4f493c;
+      margin-bottom: 14px;
+      font-size: 14px;
+    }
+
+    .history-box strong {
+      color: var(--red);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .card {
+      min-height: 86px;
+      padding: 8px 5px;
+      border: 1px solid #d2ad5d;
+      border-radius: 8px;
+      color: #6c4a1d;
+      background: linear-gradient(135deg, #fff2b9, #dba94b);
+      text-align: center;
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.35);
+      font-size: 12px;
+    }
+
+    .card.locked {
+      color: #8d8c7f;
+      border-color: #bfc2b7;
+      background: #e4e5d9;
+      filter: grayscale(.5);
+    }
+
+    .card .stamp {
+      font-size: 24px;
+    }
+
+    .card .card-name {
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .stars {
+      color: #bd8321;
+      letter-spacing: 1px;
+      font-family: sans-serif;
+      font-size: 11px;
+    }
+
+    .explore-content {
+      display: none;
+    }
+
+    .explore-content.show {
+      display: block;
+    }
+
+    .explore-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .explore-item {
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #d6c79f;
+      background: rgba(255,255,255,.43);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .signature {
+      display: none;
+      margin-top: 14px;
+      padding: 14px;
+      border: 2px double var(--gold);
+      border-radius: 10px;
+      background: radial-gradient(circle, #fff0bd, #d39c36);
+      color: #6e4317;
+      text-align: center;
+      animation: reveal .8s ease;
+      font-size: 14px;
+    }
+
+    .signature.show {
+      display: block;
+    }
+
+    .signature h2 {
+      margin-bottom: 6px;
+      font-size: 17px;
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: scale(.8) rotate(-3deg); }
+      to { opacity: 1; transform: scale(1) rotate(0); }
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      z-index: 99;
+      max-width: 88vw;
+      padding: 10px 16px;
+      border-radius: 999px;
+      color: white;
+      background: var(--blue-dark);
+      box-shadow: var(--shadow);
+      transform: translate(-50%, 120px);
+      transition: transform .3s ease;
+      font-size: 14px;
+    }
+
+    .toast.show {
+      transform: translate(-50%, 0);
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .muted {
+      color: #777;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-seal">司</div>
+        <div>
+          <h1>司南问径・三杰行旅</h1>
+          <div class="subtitle">以罗盘寻文脉，循方位见吉林</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="back-hall-btn" onclick="backToHall()">返回展厅</button>
+        <button class="restart-top-btn" id="restartTopBtn">重新开始</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="panel game-panel">
+        <div class="chapter-head">
+          <div>
+            <div class="chapter-label" id="chapterLabel">第一关・识方位</div>
+            <h2 class="chapter-title" id="chapterTitle">山止于艮</h2>
+          </div>
+          <div class="score" id="scoreText">0 / 8 印</div>
+        </div>
+
+        <div class="progress">
+          <span id="progressBar" style="width: 12.5%"></span>
+        </div>
+
+        <div class="riddle" id="riddle">
+          <span class="riddle-line">东北有山，艮止笃实；</span>
+          <span class="riddle-line">云从关外起，峰在日初明；</span>
+          <span class="riddle-line">不问南北与乾坤，且看山门所向；</span>
+          <span class="riddle-line">请将山之卦象，迎至天针之下。</span>
+        </div>
+
+        <div class="compass-wrap">
+          <div class="compass-shadow"></div>
+          <div class="compass" id="compass">
+            <div class="ring" id="ring">
+              <div class="direction" style="--angle: 0deg"><b>坎</b><small>北</small></div>
+              <div class="direction" style="--angle: 45deg"><b>艮</b><small>东北</small></div>
+              <div class="direction" style="--angle: 90deg"><b>震</b><small>东</small></div>
+              <div class="direction" style="--angle: 135deg"><b>巽</b><small>东南</small></div>
+              <div class="direction" style="--angle: 180deg"><b>离</b><small>南</small></div>
+              <div class="direction" style="--angle: 225deg"><b>坤</b><small>西南</small></div>
+              <div class="direction" style="--angle: 270deg"><b>兑</b><small>西</small></div>
+              <div class="direction" style="--angle: 315deg"><b>乾</b><small>西北</small></div>
+            </div>
+
+            <div class="fixed-needle"></div>
+            <div class="bottom-needle" id="bottomNeedle"></div>
+
+            <div class="goal top" id="goalTop"></div>
+            <div class="goal bottom" id="goalBottom"></div>
+
+            <div class="center-seal" id="fortuneBtn">
+              文脉<br><small>抽吉签</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="control-btn" id="turnLeft">↶</button>
+          <button class="primary-btn" id="lockBtn">定针・封印</button>
+          <button class="control-btn" id="turnRight">↷</button>
+        </div>
+
+        <div class="status" id="status">转动罗盘，让谜面所指落入天针之下。</div>
+
+        <div class="signature" id="signature">
+          <h2>三杰归位・吉林文脉总印</h2>
+          <p>山河为卷，人物为墨。三道文脉相合，司南终于指向故园。</p>
+          <div class="stars">★ ★ ★</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="yinzang-folder" id="yinzangFolder">印藏夹</button>
+
+  <div class="yinzang-drawer" id="yinzangDrawer">
+    <h2>文脉印藏</h2>
+
+    <div class="history-box" id="historyBox">
+      完成本关后，将解锁本关文脉印与对应的文史内容。
+    </div>
+
+    <div class="section-title">
+      <h3>印藏卡牌</h3>
+      <span class="muted" id="cardCount">0 / 8</span>
+    </div>
+    <div class="card-grid" id="cardGrid">
+      <div class="card locked">
+        <div class="stamp">？</div>
+        <div class="card-name">未解封</div>
+        <div class="stars">☆☆☆</div>
+      </div>
+    </div>
+
+    <div class="explore-content" id="exploreView">
+      <h3 style="margin: 18px 0 10px; color: var(--blue);">览游吉林三杰</h3>
+      <div class="explore-list">
+        <div class="explore-item">
+          <strong>宋小濂・筹边问路</strong><br>
+          以边地见闻与治理思考，留下近代吉林历史中的文献身影。
+        </div>
+        <div class="explore-item">
+          <strong>成多禄・诗心入史</strong><br>
+          诗文既写山河风物，也寄托家国之思，是地方文脉中的重要回响。
+        </div>
+        <div class="explore-item">
+          <strong>徐鼐霖・笔墨留痕</strong><br>
+          以文章、教育与地方文化活动，参与塑造关东文士的精神图景。
+        </div>
+        <div class="explore-item">
+          <strong>八卦与方位</strong><br>
+          乾坤坎离震巽艮兑，是传统文化中观察天地、辨识方向的一套象征系统。
+        </div>
+      </div>
+
+      <button class="secondary-btn" id="resetBtn" style="margin-top: 14px; width: 100%;">
+        重置闯关记录
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* ===== [端口] 返回展厅：iframe 内通知宿主关闭；独立打开时回退跳转首页 ===== */
+    function backToHall() {
+      if (window.parent !== window) { window.parent.postMessage('closeGame', '*'); }
+      else { location.href = '../../index.html'; }
+    }
+
+    const levels = [
+      {
+        label: "第一关・识方位",
+        title: "山止于艮",
+        clues: [
+          "东北有山，艮止笃实；",
+          "云从关外起，峰在日初明；",
+          "不问南北与乾坤，且看山门所向；",
+          "请将山之卦象，迎至天针之下。"
+        ],
+        target: 1,
+        history: "艮卦・东北：艮为山，有止、有静、有笃定之意。第一关以最直观的方位入门，让司南先学会辨认“山门”的方向。",
+        card: "艮山印",
+        stamp: "艮"
+      },
+      {
+        label: "第二关・识方位",
+        title: "离火照南",
+        clues: [
+          "朱雀临天，丹霞映野；",
+          "日行南陆，火德昭昭；",
+          "其色如赤，其象为明；",
+          "请寻离火所向。"
+        ],
+        target: 4,
+        history: "离卦・南方：离为火、为明，传统方位体系中常与南方相应。日照南陆，故以“离火”提示目标方位。",
+        card: "离火印",
+        stamp: "离"
+      },
+      {
+        label: "第三关・识方位",
+        title: "坎水归北",
+        clues: [
+          "黑水潜流，寒星临极；",
+          "玄武负甲，守望北门；",
+          "静听冰河入夜声；",
+          "水之所归，便是答案。"
+        ],
+        target: 0,
+        history: "坎卦・北方：坎有水、险、深之象。北方以玄色和水意相联，本关借“黑水”“玄武”引导玩家寻找北位。",
+        card: "坎水印",
+        stamp: "坎"
+      },
+      {
+        label: "第四关・识卦象",
+        title: "兑泽成文",
+        clues: [
+          "兑为泽，聚墨成渊；",
+          "言语相和，金声清越；",
+          "西风过砚，文章自生；",
+          "请以卦意寻文脉。"
+        ],
+        target: 6,
+        history: "兑卦・西方：兑象为泽，也有喜悦、言说、交流之意。游戏将“聚墨成渊”的文脉意象与西方兑位相连。",
+        card: "兑泽印",
+        stamp: "兑"
+      },
+      {
+        label: "第五关・识卦象",
+        title: "巽风入林",
+        clues: [
+          "巽为风，入木无痕；",
+          "一声雁过，千叶皆鸣；",
+          "风行东南，消息远达；",
+          "请让无形之风现于罗盘。"
+        ],
+        target: 3,
+        history: "巽卦・东南：巽有风、入、顺从之象，像风进入树林，虽无形却能带动万物。本关答案为东南巽位。",
+        card: "巽风印",
+        stamp: "巽"
+      },
+      {
+        label: "第六关・识卦象",
+        title: "乾天开路",
+        clues: [
+          "天行健，群峰俯首；",
+          "金气肃然，西北云开；",
+          "刚健不息，万里为途；",
+          "请寻乾天所居。"
+        ],
+        target: 7,
+        history: "乾卦・西北：乾为天，为刚健，为创造与进取。在传统八卦方位中，乾位居西北，象征天门。",
+        card: "乾天印",
+        stamp: "乾"
+      },
+      {
+        label: "第七关・识人杰",
+        title: "筹边二十年",
+        clues: [
+          "半生心事在筹边，黑水黄沙二十年；",
+          "不是侠客仗剑行，却以笔墨记山川；",
+          "远地风尘皆入卷，关东文脉有其名；",
+          "请问此人，罗盘应指何方？"
+        ],
+        target: 2,
+        history: "宋小濂：本关以“筹边”“黑水黄沙”“笔墨记山川”等意象塑造人物线索，指向吉林近代文脉中的宋小濂。答案落在东方震位，寓意新声初起。",
+        card: "小濂印",
+        stamp: "宋"
+      },
+      {
+        label: "第八关・三杰归位",
+        title: "双星照故园",
+        clues: [
+          "一星落东，文章破晓；",
+          "一星沉西，诗心映泽；",
+          "两处同时归位，三杰方能合印；",
+          "请以一次转动，让双星同临天针与地针。"
+        ],
+        target: [2, 6],
+        history: "三杰归位：最后一关要求一次转动同时完成两个目标的对齐。东方震位象征新生，西方兑位象征言说与文章；两点相合，寓意吉林地方文脉在不同人物与时代之间彼此照见。",
+        card: "三杰合印",
+        stamp: "合"
+      }
+    ];
+
+    const directions = ["北・坎", "东北・艮", "东・震", "东南・巽", "南・离", "西南・坤", "西・兑", "西北・乾"];
+
+    let currentLevel = 0;
+    let rotation = 0;
+    let attempts = 0;
+    let hints = 0;
+    let startTime = Date.now();
+    let mode = "game";
+    let isDragging = false;
+    let dragStartAngle = 0;
+    let dragStartRotation = 0;
+
+    const $ = id => document.getElementById(id);
+
+    const ring = $("ring");
+    const compass = $("compass");
+    const yinzangFolder = $("yinzangFolder");
+    const yinzangDrawer = $("yinzangDrawer");
+    const restartTopBtn = $("restartTopBtn");
+
+    function loadProgress() {
+      try {
+        const data = JSON.parse(localStorage.getItem("sinanProgress") || "{}");
+        return {
+          completed: data.completed || {},
+          totalStars: data.totalStars || 0
+        };
+      } catch {
+        return { completed: {}, totalStars: 0 };
+      }
+    }
+
+    let progress = loadProgress();
+
+    function saveProgress() {
+      localStorage.setItem("sinanProgress", JSON.stringify(progress));
+    }
+
+    function toggleYinzang() {
+      yinzangDrawer.classList.toggle("open");
+    }
+
+    function renderCards() {
+      const grid = $("cardGrid");
+      grid.innerHTML = "";
+
+      levels.forEach((level, index) => {
+        const done = progress.completed[index];
+        const card = document.createElement("div");
+        card.className = "card " + (done ? "" : "locked");
+
+        card.innerHTML = done
+          ? `
+            <div class="stamp">${level.stamp}</div>
+            <div class="card-name">${level.card}</div>
+            <div class="stars">${"★".repeat(done.stars)}${"☆".repeat(3 - done.stars)}</div>
+          `
+          : `
+            <div class="stamp">？</div>
+            <div class="card-name">未解封</div>
+            <div class="stars">☆☆☆</div>
+          `;
+
+        grid.appendChild(card);
+      });
+
+      const count = Object.keys(progress.completed).length;
+      $("cardCount").textContent = `${count} / ${levels.length}`;
+      $("scoreText").textContent = `${count} / ${levels.length} 印`;
+    }
+
+    function renderLevel() {
+      const level = levels[currentLevel];
+
+      $("chapterLabel").textContent = level.label;
+      $("chapterTitle").textContent = level.title;
+      $("riddle").innerHTML = level.clues
+        .map(line => `<span class="riddle-line">${line}</span>`)
+        .join("");
+
+      $("progressBar").style.width = `${((currentLevel + 1) / levels.length) * 100}%`;
+
+      $("historyBox").innerHTML = progress.completed[currentLevel]
+        ? progress.completed[currentLevel].history
+        : "完成本关后，将解锁本关文脉印与对应的文史内容。";
+
+      attempts = 0;
+      hints = 0;
+      startTime = Date.now();
+      rotation = 0;
+      updateRing();
+
+      $("status").className = "status";
+      $("status").textContent = "转动罗盘，让谜面所指落入天针之下。";
+
+      const isFinal = Array.isArray(level.target);
+      $("bottomNeedle").style.display = isFinal ? "block" : "none";
+      $("goalTop").style.display = isFinal ? "block" : "none";
+      $("goalBottom").style.display = isFinal ? "block" : "none";
+
+      $("signature").classList.toggle("show", Object.keys(progress.completed).length === levels.length);
+
+      renderCards();
+    }
+
+    function updateRing() {
+      ring.style.transform = `rotate(${-rotation * 45}deg)`;
+    }
+
+    function turn(step) {
+      rotation = (rotation + step + 8) % 8;
+      updateRing();
+    }
+
+    function getStars() {
+      const seconds = (Date.now() - startTime) / 1000;
+      if (attempts <= 1 && hints === 0 && seconds <= 35) return 3;
+      if (attempts <= 3 && hints <= 1 && seconds <= 90) return 2;
+      return 1;
+    }
+
+    function isCorrect() {
+      const target = levels[currentLevel].target;
+      if (Array.isArray(target)) {
+        return rotation === target[0] && rotation === target[1];
+      }
+      return rotation === target;
+    }
+
+    function checkAnswer() {
+      attempts++;
+      const level = levels[currentLevel];
+      const finalLevel = Array.isArray(level.target);
+
+      if (finalLevel) {
+        const required = level.target[0];
+        const opposite = (required + 4) % 8;
+
+        if (rotation === required || rotation === opposite) {
+          completeLevel();
+          return;
+        }
+
+        hints++;
+        $("status").className = "status error";
+        $("status").textContent = "双星尚未归位：东方震位与西方兑位，需同时对准天地二针。";
+        showToast("金针颤鸣：再试一次");
+        return;
+      }
+
+      if (rotation === level.target) {
+        completeLevel();
+      } else {
+        hints++;
+        $("status").className = "status error";
+        $("status").textContent = `云雾未散，当前指向「${directions[rotation]}」，再辨一辨谜中之意。`;
+        showToast("方向未合，再试一次");
+      }
+    }
+
+    function completeLevel() {
+      const level = levels[currentLevel];
+      const stars = getStars();
+
+      progress.completed[currentLevel] = {
+        stars,
+        history: level.history,
+        at: Date.now()
+      };
+
+      progress.totalStars = Object.values(progress.completed)
+        .reduce((sum, item) => sum + item.stars, 0);
+
+      saveProgress();
+      renderCards();
+
+      $("historyBox").innerHTML = level.history;
+      $("status").className = "status success";
+      $("status").innerHTML = `封印解开！获得「${level.card}」　${"★".repeat(stars)}${"☆".repeat(3 - stars)}`;
+      showToast(`恭喜获得：${level.card}`);
+
+      if (currentLevel === levels.length - 1) {
+        $("signature").classList.add("show");
+        $("status").textContent = "八关尽破，吉林三杰总印已现。";
+      } else {
+        setTimeout(() => {
+          currentLevel++;
+          renderLevel();
+        }, 1500);
+      }
+    }
+
+    function showToast(text) {
+      const toast = $("toast");
+      toast.textContent = text;
+      toast.classList.add("show");
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    function fortune() {
+      const fortunes = [
+        "今日文脉签：山重水复疑无路，转过一格见新章。",
+        "今日文脉签：风从东南来，宜读旧书，也宜问路。",
+        "今日文脉签：金声玉振，所思之事终有回响。",
+        "今日文脉签：静守一方，答案自会落在针下。",
+        "今日文脉签：黑水长流，故人的故事仍在前行。",
+        "今日文脉签：天行健，今日宜向难处再进一步。",
+        "今日文脉签：两星相望，合则成章。",
+        "今日文脉签：笔墨不远，山河即是最好的题签。"
+      ];
+
+      const index = Math.floor(Math.random() * fortunes.length);
+      showToast(fortunes[index]);
+    }
+
+    restartTopBtn.addEventListener("click", function () {
+      if (confirm("确定要清除全部印藏记忆，游戏回到初始状态吗？")) {
+        localStorage.removeItem("sinanProgress");
+        progress = { completed: {}, totalStars: 0 };
+        currentLevel = 0;
+        rotation = 0;
+        attempts = 0;
+        hints = 0;
+        startTime = Date.now();
+        renderLevel();
+        showToast("印藏记忆已清空，游戏重新开始！");
+      }
+    });
+
+    $("turnLeft").addEventListener("click", () => turn(-1));
+    $("turnRight").addEventListener("click", () => turn(1));
+    $("lockBtn").addEventListener("click", checkAnswer);
+    $("fortuneBtn").addEventListener("click", fortune);
+
+    yinzangFolder.addEventListener("click", toggleYinzang);
+
+    $("resetBtn").addEventListener("click", () => {
+      if (confirm("确定要清除全部闯关记录吗？")) {
+        localStorage.removeItem("sinanProgress");
+        progress = { completed: {}, totalStars: 0 };
+        currentLevel = 0;
+        renderLevel();
+        showToast("闯关记录已重置");
+      }
+    });
+
+    function pointerAngle(event) {
+      const rect = compass.getBoundingClientRect();
+      const x = event.clientX - (rect.left + rect.width / 2);
+      const y = event.clientY - (rect.top + rect.height / 2);
+      return Math.atan2(y, x) * 180 / Math.PI;
+    }
+
+    compass.addEventListener("pointerdown", event => {
+      if (event.target.closest("#fortuneBtn")) return;
+      isDragging = true;
+      dragStartAngle = pointerAngle(event);
+      dragStartRotation = rotation;
+      compass.setPointerCapture(event.pointerId);
+    });
+
+    compass.addEventListener("pointermove", event => {
+      if (!isDragging) return;
+
+      const currentAngle = pointerAngle(event);
+      let delta = currentAngle - dragStartAngle;
+
+      if (delta > 180) delta -= 360;
+      if (delta < -180) delta += 360;
+
+      const stepDelta = Math.round(delta / 45);
+      rotation = (dragStartRotation + stepDelta + 8) % 8;
+      updateRing();
+    });
+
+    compass.addEventListener("pointerup", () => {
+      isDragging = false;
+    });
+
+    compass.addEventListener("pointercancel", () => {
+      isDragging = false;
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "ArrowLeft") turn(-1);
+      if (event.key === "ArrowRight") turn(1);
+      if (event.key === "Enter") checkAnswer();
+    });
+
+    renderLevel();
+  </script>
+</body>
+</html>
