@@ -1499,7 +1499,15 @@ function init() {
     if (!IMAGES.interactive) IMAGES.interactive = generatePanorama('#1a1510', '#2a2015', '#0a0805');
     if (!IMAGES.immersive) IMAGES.immersive = generatePanorama('#0a0a0a', '#151515', '#050505');
 
-    loadScene('lobby');
+    // ===== 开场统一预加载全部六张全景背景（真实进度），就绪后进入大厅 =====
+    var panoKeys = ['lobby', 'chengduolu', 'songxiaolian', 'xunailin', 'interactive', 'immersive'];
+    var panoTotal = panoKeys.length;
+    var panoDone = 0;
+    var booted = false;
+    function bootApp() {
+        if (booted) return;
+        booted = true;
+        loadScene('lobby');
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mousedown', onMouseDown);
         window.addEventListener('mouseup', onMouseUp);
@@ -1515,6 +1523,20 @@ function init() {
             if (bottomBar) bottomBar.style.display = 'flex';
         }, 500);
         animate();
+    }
+    function panoStep() {
+        panoDone++;
+        setProgress(20 + Math.round(panoDone / panoTotal * 75), '正在加载全景场景 ' + panoDone + '/' + panoTotal + ' ...');
+        if (panoDone >= panoTotal) bootApp();
+    }
+    setProgress(20, '正在加载全景场景 0/' + panoTotal + ' ...');
+    panoKeys.forEach(function(k) {
+        var im = new Image();
+        im.onload = panoStep;
+        im.onerror = panoStep; // 单张失败不阻塞入场
+        im.src = IMAGES[k];
+    }
+    setTimeout(bootApp, 20000); // 看门狗：极端网络下 20 秒强制入场，防止卡死
     } catch (e) {
         console.error(e);
         showError('初始化失败: ' + e.message);
