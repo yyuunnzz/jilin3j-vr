@@ -76,10 +76,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:"Mi
 /* ===== 移动端适配（不影响桌面端） ===== */
 #canvas-container{touch-action:none;-webkit-user-select:none;user-select:none}
 html{-webkit-tap-highlight-color:transparent}
-#rotateHint{display:none;position:fixed;inset:0;z-index:300;background:rgba(12,7,4,0.95);flex-direction:column;align-items:center;justify-content:center;color:#d4af37;letter-spacing:4px;font-size:15px;line-height:2.2;text-align:center}
-#rotateHint .rh-icon{width:70px;height:38px;margin-bottom:26px;border:2px solid #d4af37;border-radius:8px;animation:rhRotate 1.8s ease-in-out infinite}
+#rotateHint{display:none;position:fixed;left:50%;top:12%;transform:translateX(-50%);z-index:299;background:rgba(20,12,8,0.93);border:1px solid rgba(212,175,55,0.5);border-radius:10px;padding:14px 18px;color:#d4af37;letter-spacing:2px;font-size:13px;line-height:1.9;text-align:center;flex-direction:column;align-items:center;gap:10px;max-width:80vw}
+#rotateHint .rh-icon{width:46px;height:26px;border:2px solid #d4af37;border-radius:6px;animation:rhRotate 1.8s ease-in-out infinite;flex-shrink:0}
 @keyframes rhRotate{0%,25%{transform:rotate(0)}65%,100%{transform:rotate(90deg)}}
-@media (pointer:coarse) and (orientation:portrait){#rotateHint{display:flex}}
+@media (pointer:coarse) and (orientation:portrait){#rotateHint.show{display:flex}}
+#rhClose{margin-top:2px;background:rgba(139,69,19,0.35);border:1px solid rgba(212,175,55,0.4);color:#d4af37;border-radius:4px;padding:4px 14px;font-size:12px;letter-spacing:1px;cursor:pointer;font-family:inherit}
 #fsBtn{display:none;position:fixed;right:14px;bottom:60px;z-index:120;width:44px;height:44px;border-radius:50%;background:rgba(20,12,8,0.85);border:1px solid rgba(212,175,55,0.5);color:#d4af37;font-size:19px;cursor:pointer;align-items:center;justify-content:center;padding:0;font-family:inherit}
 @media (pointer:coarse){#fsBtn{display:flex}}
 @media (max-width:768px){
@@ -92,6 +93,7 @@ html{-webkit-tap-highlight-color:transparent}
 .header-bar h1{font-size:14px;letter-spacing:3px}
 }
 </style>
+<base target="_blank">
 </head>
 <body>
 <div id="canvas-container"></div>
@@ -123,7 +125,7 @@ html{-webkit-tap-highlight-color:transparent}
     <button id="btnBack" style="display:none" onclick="goToLobby()">返回大厅</button>
 </div>
 
-<div id="rotateHint"><div class="rh-icon"></div><div>请旋转手机至横屏<br>获得最佳观展体验</div></div>
+<div id="rotateHint"><div class="rh-icon"></div><div>建议旋转手机至横屏<br>获得最佳观展体验</div><button id="rhClose">继续竖屏浏览</button></div>
 <button id="fsBtn" title="横屏全屏体验">&#x26F6;</button>
 <div class="tooltip" id="tooltip"></div>
 
@@ -1697,6 +1699,28 @@ function onTouchEnd(e) {
         });
     }
     document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+})();
+
+// 横屏提示：JS 驱动，可手动关闭；旋转横屏后自动消失
+(function setupRotateHint() {
+    var hint = document.getElementById('rotateHint');
+    if (!hint) return;
+    var mq = window.matchMedia('(pointer: coarse) and (orientation: portrait)');
+    var dismissed = false;
+    function apply() {
+        if (!dismissed && mq.matches) hint.classList.add('show');
+        else hint.classList.remove('show');
+    }
+    if (mq.addEventListener) mq.addEventListener('change', apply);
+    else if (mq.addListener) mq.addListener(apply);
+    window.addEventListener('orientationchange', function() { setTimeout(apply, 350); });
+    window.addEventListener('resize', apply);
+    var btn = document.getElementById('rhClose');
+    if (btn) btn.addEventListener('click', function() {
+        dismissed = true;
+        hint.classList.remove('show');
+    });
+    apply();
 })();
 
 function loadScene(key) {
