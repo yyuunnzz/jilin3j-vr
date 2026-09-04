@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>吉林三杰 VR 博物馆</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -72,6 +72,25 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:"Mi
 .game-header .close:hover{color:#d4af37}
 .game-modal iframe{flex:1;width:100%;border:none;background:#1a1510}
 
+
+/* ===== 移动端适配（不影响桌面端） ===== */
+#canvas-container{touch-action:none;-webkit-user-select:none;user-select:none}
+html{-webkit-tap-highlight-color:transparent}
+#rotateHint{display:none;position:fixed;inset:0;z-index:300;background:rgba(12,7,4,0.95);flex-direction:column;align-items:center;justify-content:center;color:#d4af37;letter-spacing:4px;font-size:15px;line-height:2.2;text-align:center}
+#rotateHint .rh-icon{width:70px;height:38px;margin-bottom:26px;border:2px solid #d4af37;border-radius:8px;animation:rhRotate 1.8s ease-in-out infinite}
+@keyframes rhRotate{0%,25%{transform:rotate(0)}65%,100%{transform:rotate(90deg)}}
+@media (pointer:coarse) and (orientation:portrait){#rotateHint{display:flex}}
+#fsBtn{display:none;position:fixed;right:14px;bottom:60px;z-index:120;width:44px;height:44px;border-radius:50%;background:rgba(20,12,8,0.85);border:1px solid rgba(212,175,55,0.5);color:#d4af37;font-size:19px;cursor:pointer;align-items:center;justify-content:center;padding:0;font-family:inherit}
+@media (pointer:coarse){#fsBtn{display:flex}}
+@media (max-width:768px){
+.exhibit-modal{width:96vw;height:90vh}
+.modal-body{flex-direction:column}
+.modal-left{width:100%;height:42%;border-right:none;border-bottom:1px solid rgba(212,175,55,0.15);padding:14px}
+.modal-right{width:100%;flex:1;padding:16px 20px}
+.modal-right p{font-size:13px;line-height:1.9}
+.modal-header h2{font-size:16px}
+.header-bar h1{font-size:14px;letter-spacing:3px}
+}
 </style>
 </head>
 <body>
@@ -104,6 +123,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:"Mi
     <button id="btnBack" style="display:none" onclick="goToLobby()">返回大厅</button>
 </div>
 
+<div id="rotateHint"><div class="rh-icon"></div><div>请旋转手机至横屏<br>获得最佳观展体验</div></div>
+<button id="fsBtn" title="横屏全屏体验">&#x26F6;</button>
 <div class="tooltip" id="tooltip"></div>
 
 <div class="modal-overlay" id="modalOverlay"></div>
@@ -1569,6 +1590,114 @@ function onMouseLeave(e) {
         document.body.style.cursor = 'default';
     }
 }
+
+// ==================== 移动端触摸支持（不影响桌面端） ====================
+var touchTrackId = null;
+var touchLastX = 0, touchLastY = 0, touchStartX = 0, touchStartY = 0;
+var touchMoved = false;
+var pinchLastDist = 0;
+
+function findTouch(touches, id) {
+    for (var i = 0; i < touches.length; i++) {
+        if (touches[i].identifier === id) return touches[i];
+    }
+    return null;
+}
+
+function onTouchStart(e) {
+    if (e.touches.length === 1) {
+        var t = e.touches[0];
+        touchTrackId = t.identifier;
+        touchStartX = touchLastX = t.clientX;
+        touchStartY = touchLastY = t.clientY;
+        touchMoved = false;
+        pinchLastDist = 0;
+    } else if (e.touches.length === 2) {
+        touchTrackId = null;
+        pinchLastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        touchMoved = true;
+    }
+    if (e.cancelable) e.preventDefault();
+}
+
+function onTouchMove(e) {
+    if (e.touches.length === 1 && touchTrackId !== null) {
+        var t = findTouch(e.touches, touchTrackId);
+        if (!t) return;
+        var dx = t.clientX - touchLastX;
+        var dy = t.clientY - touchLastY;
+        if (Math.abs(t.clientX - touchStartX) > dragThreshold || Math.abs(t.clientY - touchStartY) > dragThreshold) {
+            touchMoved = true;
+        }
+        if (touchMoved) {
+            targetLon -= dx * 0.5;
+            targetLat += dy * 0.5;
+            targetLat = Math.max(-60, Math.min(60, targetLat));
+        }
+        touchLastX = t.clientX;
+        touchLastY = t.clientY;
+    } else if (e.touches.length === 2) {
+        var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        if (pinchLastDist > 0 && camera) {
+            camera.fov = Math.max(40, Math.min(90, camera.fov - (d - pinchLastDist) * 0.08));
+            camera.updateProjectionMatrix();
+        }
+        pinchLastDist = d;
+        touchMoved = true;
+    }
+    if (e.cancelable) e.preventDefault();
+}
+
+function onTouchEnd(e) {
+    if (e.touches.length === 0) {
+        if (!touchMoved && touchTrackId !== null && !isTransitioning) {
+            var t = findTouch(e.changedTouches, touchTrackId);
+            if (t && camera && hotspotSprites.length) {
+                mouse.x = (t.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(t.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                var intersects = raycaster.intersectObjects(hotspotSprites);
+                if (intersects.length > 0) {
+                    var data = intersects[0].object.userData;
+                    if (data.type === 'zone') {
+                        transitionToScene(data.target);
+                    } else if (data.type === 'exhibit') {
+                        showExhibitDetail(data.exhibit);
+                    } else if (data.type === 'game') {
+                        openGameModal(data.name, data.gameUrl);
+                    }
+                }
+            }
+        }
+        touchTrackId = null;
+        pinchLastDist = 0;
+    }
+    if (e.cancelable) e.preventDefault();
+}
+
+(function setupMobileControls() {
+    var container = document.getElementById('canvas-container');
+    if (container) {
+        container.addEventListener('touchstart', onTouchStart, {passive: false});
+        container.addEventListener('touchmove', onTouchMove, {passive: false});
+        container.addEventListener('touchend', onTouchEnd, {passive: false});
+        container.addEventListener('touchcancel', onTouchEnd, {passive: false});
+    }
+    var fsBtn = document.getElementById('fsBtn');
+    if (fsBtn) {
+        fsBtn.addEventListener('click', function() {
+            var el = document.documentElement;
+            var req = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (!req) return;
+            Promise.resolve(req.call(el)).then(function() {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(function() {});
+                }
+            }).catch(function() {});
+        });
+    }
+    document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+})();
 
 function loadScene(key) {
     var data = SCENES[key];
