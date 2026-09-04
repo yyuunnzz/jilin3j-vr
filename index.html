@@ -1535,7 +1535,7 @@ function init() {
         im.onload = panoStep;
         im.onerror = panoStep; // 单张失败不阻塞入场
         im.src = IMAGES[k];
-    }
+    });
     setTimeout(bootApp, 20000); // 看门狗：极端网络下 20 秒强制入场，防止卡死
     } catch (e) {
         console.error(e);
