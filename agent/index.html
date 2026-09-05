@@ -6,9 +6,10 @@
 <title>三杰问对 · AI智能体</title>
 <!-- ════════════════════════════════════════════════════
      部署配置（只需改这一处）：
-     按 glm-proxy-worker.js 部署好 Cloudflare Worker 后，
-     把下方脚本里的 YOUR_WORKER_URL 替换成你的Worker地址。
-     Key 只存在 Worker 服务端，GitHub 仓库不会泄露。
+     ① 打开 bigmodel.cn 注册/登录（免费）
+     ② 进入「API Keys」创建密钥（GLM-4-Flash 模型永久免费）
+     ③ 把脚本里 SET 中的 PASTE_YOUR_ZHIPU_KEY_HERE 替换为你的Key
+     智谱接口国内直连、支持跨域，访客（含手机端）零配置即可使用。
      ════════════════════════════════════════════════════ -->
 <style>
 :root{
@@ -175,6 +176,7 @@ body{
 @keyframes tp{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
 .hint-line{text-align:center;font-size:10.5px;color:var(--ink2);padding-top:2px;letter-spacing:.08em}
 </style>
+<base target="_blank">
 </head>
 <body>
 <div id="app">
@@ -225,12 +227,11 @@ body{
 
 <div class="set-panel" id="setPanel"><div class="set-card">
   <h3>接入在线智能体</h3>
-  <div class="tip">默认接入 <b>智谱 GLM-4-Flash</b>（免费·国内直连）。获取Key三步：① 打开 bigmodel.cn 注册/登录 → ② 进入「API Keys」→ ③ 创建并复制密钥，粘贴到下框保存即可。所有访客都能用，与你的电脑无关。也可切换 Ollama 本地模型（仅本机生效）或 Gemini。密钥仅存本机浏览器，调用失败自动回退本地知识库。</div><div class="tip">填入 OpenAI 兼容接口后，「博文先生」将由真实大模型应答，并注入三杰文献上下文；留空或调用失败时自动回退本地知识库。密钥仅保存在本机浏览器。</div>
-  <div class="tip" style="margin-bottom:10px">通用AI由 <b>智谱 GLM-4-Flash</b> 免费提供。推荐通过 <b>Cloudflare Worker 代理</b>接入（Key不公开，访客零配置）：按 <b>glm-proxy-worker.js</b> 部署后，把Worker地址填到下方「API地址」即可。</div>
-  <label>API 地址（填你的Worker地址）</label>
-  <input id="setUrl" placeholder="https://你的-worker.workers.dev">
-  <label>API Key（Worker模式留空）</label>
-  <input id="setKey" type="password" placeholder="仅直连智谱时才需要，会随仓库公开，不推荐">
+  <div class="tip">通用AI由 <b>智谱 GLM-4-Flash</b> 提供（bigmodel.cn 注册免费创建 Key，模型永久免费）。<b>Key 保存在云函数环境变量中，GitHub 仓库不会泄露</b>。把 <b>zhipu-proxy/scf.js</b> 部署到腾讯云函数（教程见仓库 zhipu-proxy/README.md），将得到的 https 地址填入下方即可。</div>
+  <div class="tip" style="margin-bottom:10px">填好后所有访客（含手机端）零配置直接使用；地址未填或调用失败时，自动回退本地文献知识库，三杰史料照常应答。</div>
+  <label>API 地址（腾讯云函数部署后获得的访问地址）</label>
+  <input id="setUrl" placeholder="https://service-xxx.gz.apigw.tencentcs.com/release/glm-proxy">
+  <input id="setKey" type="hidden">
   <label>模型（固定）</label>
   <input id="setModel" readonly value="glm-4-flash" style="background:#f0ead8;color:#8a8070">
   <div class="row-btns">
@@ -436,7 +437,7 @@ var FAQ = [
 /* ==================== 核心逻辑 ==================== */
 var chatEl=document.getElementById('chat'), qEl=document.getElementById('q');
 var mode='bot', cur='cheng', greeted={}, toastT=0;
-var SET={prov:'glm',url:'https://jilin3j-glm.yyyyyuan-8.workers.dev',model:'glm-4-flash',key:''};
+var SET={prov:'glm',url:'https://glm-proxy-huddkaueti.cn-hangzhou.fcapp.run',model:'glm-4-flash',key:''};
 var PROVIDERS={
 pollinations:{url:'https://text.pollinations.ai/',model:'openai',needKey:false,hint:'免注册免Key·公共免费'},
 ollama:{url:'http://localhost:11434/v1/chat/completions',model:'qwen2.5:7b',needKey:false,hint:'本地模型无需填写'},
@@ -444,7 +445,7 @@ glm:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-fl
 gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash',needKey:true,hint:'aistudio.google.com 免费申请'},
 custom:{url:'',model:'',needKey:true,hint:'sk-...'}};
 
-function hasKey(){return !!SET.url&&SET.url.indexOf('YOUR_')===-1;}
+function hasKey(){return !!SET.url;}
 
 function toast(s){var t=document.getElementById('toast');t.textContent=s;t.classList.add('show');
 clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show')},2200);}
@@ -567,7 +568,7 @@ function botAnswer(q){
   }else{
     if(!window._guided&&SET.prov==='pollinations'){
       window._guided=1;
-      toast('公共AI线路暂不可达。免费升级：⚙设置里选「GLM-4-Flash」（bigmodel.cn注册免费Key）或「Ollama本地模型」');
+      toast('通用AI未接入：按 zhipu-proxy/README.md 部署云函数后，到「⚙ 接入在线AI」填入地址即可');
     }
     var t2=showTyping('bot');
     setTimeout(function(){removeTyping(t2);addRow('bot',esc(botLocal(q)));},450);
@@ -669,18 +670,16 @@ function renderPresets(){
 
 /* ---------- 设置 ---------- */
 function openSet(){
-  document.getElementById('setKey').value=SET.key;
-  document.getElementById('setUrl').value=SET.url.indexOf('YOUR_')===-1?SET.url:'';
+  document.getElementById('setUrl').value=SET.url||'';
   document.getElementById('setPanel').classList.add('open');
 }
 
 function closeSet(){document.getElementById('setPanel').classList.remove('open');}
 function saveSet(){
-  var k=document.getElementById('setKey').value.trim();
   var u=document.getElementById('setUrl').value.trim();
   SET={prov:'glm',
-       url:u||'YOUR_WORKER_URL',
-       key:k,
+       url:u.replace(/\/+$/,''),
+       key:'',
        model:'glm-4-flash'};
   try{localStorage.setItem('jl3j_agent_api',JSON.stringify(SET));}catch(e){}
   updateFlag();closeSet();
@@ -693,7 +692,11 @@ function updateFlag(){
   f.className=online?'net-flag on':'net-flag off';
 }
 document.getElementById('btnSet').addEventListener('click',openSet);
-try{var _s=JSON.parse(localStorage.getItem('jl3j_agent_api')||'null');if(_s)SET={prov:_s.prov||'',url:_s.url||'',key:_s.key||'',model:_s.model||''};}catch(e){}
+try{var _s=JSON.parse(localStorage.getItem('jl3j_agent_api')||'null');
+if(_s){
+  // 代码里已硬编码地址时优先用代码里的，避免访客浏览器残留旧配置把地址覆盖掉
+  if(!SET.url) SET.url=(_s.url||'').replace(/\/+$/,'');
+}}catch(e){}
 updateFlag();
 
 /* ---------- 画卷召唤 ---------- */
