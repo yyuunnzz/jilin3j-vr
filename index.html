@@ -95,6 +95,32 @@ html{-webkit-tap-highlight-color:transparent}
 #gameLoading{position:absolute;top:56px;left:0;right:0;bottom:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#1a1510;color:#d4af37;font-size:14px;letter-spacing:3px}
 #gameLoading .spinner{width:34px;height:34px;border:3px solid rgba(212,175,55,0.25);border-top-color:#d4af37;border-radius:50%;animation:glSpin 0.9s linear infinite}
 @keyframes glSpin{to{transform:rotate(360deg)}}
+/* ===== 展厅地图 ===== */
+.map-overlay{display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,0.8);align-items:center;justify-content:center}
+.map-overlay.active{display:flex}
+.map-panel{width:min(92vw,860px);max-height:92vh;background:rgba(20,12,8,0.98);border:1px solid rgba(212,175,55,0.4);border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+.map-header{display:flex;justify-content:space-between;align-items:center;padding:14px 24px;border-bottom:1px solid rgba(212,175,55,0.2)}
+.map-header h2{color:#d4af37;font-size:18px;font-weight:normal;letter-spacing:4px;margin:0}
+.map-header .close{color:#666;font-size:28px;cursor:pointer;line-height:1}
+.map-header .close:hover{color:#d4af37}
+.map-body{padding:12px;overflow:auto;-webkit-overflow-scrolling:touch}
+.map-body svg{width:100%;height:auto;display:block}
+.map-tip{padding:10px 20px 14px;color:#8b6914;font-size:12px;letter-spacing:2px;text-align:center;border-top:1px solid rgba(212,175,55,0.15)}
+.mcorridor{stroke:rgba(212,175,55,0.22);stroke-width:2;fill:none}
+.mnode{cursor:pointer}
+.mnode circle{fill:rgba(139,69,19,0.4);stroke:#d4af37;stroke-width:1.5;transition:all .25s}
+.mnode text{fill:#eee;font-size:16px;text-anchor:middle;letter-spacing:2px;pointer-events:none}
+.mnode:hover circle{fill:rgba(212,175,55,0.35);stroke-width:2.5}
+.mnode.current circle{fill:rgba(212,175,55,0.45);stroke:#ffe9a8;stroke-width:3}
+.mnode.current text{fill:#ffe9a8;font-weight:bold}
+.mlobby rect{fill:rgba(60,40,20,0.6);stroke:#d4af37;stroke-width:1.5;transition:all .25s}
+.mlobby text{fill:#d4af37;font-size:17px;text-anchor:middle;letter-spacing:4px;pointer-events:none}
+.mlobby:hover rect{fill:rgba(90,60,25,0.7)}
+.msub{cursor:pointer}
+.msub rect{fill:rgba(40,25,12,0.92);stroke:rgba(212,175,55,0.55);stroke-width:1;transition:all .25s}
+.msub text{fill:#ddd;font-size:14px;text-anchor:middle;letter-spacing:1px;pointer-events:none}
+.msub:hover rect{fill:rgba(139,69,19,0.55);stroke:#d4af37}
+.msub:hover text{fill:#ffe9a8}
 </style>
 <base target="_blank">
 </head>
@@ -125,11 +151,41 @@ html{-webkit-tap-highlight-color:transparent}
 
 <div class="bottom-bar" id="bottomBar" style="display:none">
     <span class="hint" id="bottomHint">拖动旋转视角，点击发光热点进入展区</span>
+    <button id="btnMap" onclick="openMap()">展厅地图</button>
     <button id="btnBack" style="display:none" onclick="goToLobby()">返回大厅</button>
 </div>
 
 <div id="rotateHint"><div class="rh-icon"></div><div>建议旋转手机至横屏<br>获得最佳观展体验</div><button id="rhClose">继续竖屏浏览</button></div>
 <button id="fsBtn" title="横屏全屏体验">&#x26F6;</button>
+<div class="map-overlay" id="mapOverlay">
+<div class="map-panel">
+    <div class="map-header"><h2>展厅地图</h2><span class="close" onclick="closeMap()">&times;</span></div>
+    <div class="map-body">
+    <svg id="mapSvg" viewBox="0 0 760 620" xmlns="http://www.w3.org/2000/svg">
+        <g class="mcorridors">
+            <line x1="380" y1="300" x2="140" y2="140"/>
+            <line x1="380" y1="300" x2="380" y2="100"/>
+            <line x1="380" y1="300" x2="620" y2="140"/>
+            <line x1="380" y1="300" x2="200" y2="460"/>
+            <line x1="380" y1="300" x2="560" y2="460"/>
+            <line x1="200" y1="460" x2="105" y2="532"/>
+            <line x1="200" y1="460" x2="295" y2="537"/>
+            <line x1="560" y1="460" x2="560" y2="537"/>
+        </g>
+        <g class="mnode mlobby" data-scene="lobby"><rect x="305" y="258" width="150" height="84" rx="12"/><text x="380" y="306">展厅大厅</text></g>
+        <g class="mnode" data-scene="chengduolu"><circle cx="140" cy="140" r="58"/><text x="140" y="146">成多禄展厅</text></g>
+        <g class="mnode" data-scene="songxiaolian"><circle cx="380" cy="100" r="58"/><text x="380" y="106">宋小濂展厅</text></g>
+        <g class="mnode" data-scene="xunailin"><circle cx="620" cy="140" r="58"/><text x="620" y="146">徐鼐霖展厅</text></g>
+        <g class="mnode" data-scene="immersive"><circle cx="200" cy="460" r="62"/><text x="200" y="466">沉浸厅</text></g>
+        <g class="msub" data-name="三杰智能体" data-url="agent/index.html"><rect x="40" y="532" width="130" height="46" rx="23"/><text x="105" y="561">AI 智能体</text></g>
+        <g class="msub" data-name="三杰行迹画卷" data-url="scroll/index.html"><rect x="225" y="537" width="140" height="46" rx="23"/><text x="295" y="566">三杰行迹画卷</text></g>
+        <g class="mnode" data-scene="interactive"><circle cx="560" cy="460" r="62"/><text x="560" y="466">互动厅</text></g>
+        <g class="msub" data-name="文脉闯关 · 残卷修复与罗盘探索" data-url="games/index.html"><rect x="495" y="537" width="130" height="46" rx="23"/><text x="560" y="566">文脉闯关</text></g>
+    </svg>
+    </div>
+    <div class="map-tip">点击任意展厅或互动项目直接进入 · 高亮为当前所在位置 · 按 ESC 或点击空白处关闭</div>
+</div>
+</div>
 <div class="tooltip" id="tooltip"></div>
 
 <div class="modal-overlay" id="modalOverlay"></div>
@@ -1801,6 +1857,39 @@ function onTouchEnd(e) {
         var gl = document.getElementById('gameLoading');
         if (gl) gl.style.display = 'none';
     });
+})();
+
+// ==================== 展厅地图 ====================
+function openMap() {
+    var ov = document.getElementById('mapOverlay');
+    if (!ov) return;
+    var nodes = ov.querySelectorAll('[data-scene]');
+    for (var i = 0; i < nodes.length; i++) {
+        nodes[i].classList.toggle('current', nodes[i].getAttribute('data-scene') === currentScene);
+    }
+    ov.classList.add('active');
+}
+function closeMap() {
+    var ov = document.getElementById('mapOverlay');
+    if (ov) ov.classList.remove('active');
+}
+(function setupMap() {
+    var svg = document.getElementById('mapSvg');
+    if (svg) svg.addEventListener('click', function(e) {
+        var g = e.target && e.target.closest ? e.target.closest('g') : null;
+        if (!g) return;
+        var scene = g.getAttribute('data-scene');
+        if (scene) {
+            closeMap();
+            if (scene !== currentScene) transitionToScene(scene);
+        } else if (g.getAttribute('data-url')) {
+            closeMap();
+            openGameModal(g.getAttribute('data-name'), g.getAttribute('data-url'));
+        }
+    });
+    var ov = document.getElementById('mapOverlay');
+    if (ov) ov.addEventListener('click', function(e) { if (e.target === ov) closeMap(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeMap(); });
 })();
 
 function loadScene(key) {
