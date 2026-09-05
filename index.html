@@ -122,6 +122,7 @@ html{-webkit-tap-highlight-color:transparent}
 .msub:hover rect{fill:rgba(139,69,19,0.55);stroke:#d4af37}
 .msub:hover text{fill:#ffe9a8}
 </style>
+<base target="_blank">
 </head>
 <body>
 <div id="canvas-container"></div>
@@ -1957,6 +1958,24 @@ function loadScene(key) {
             transparent: fadingMesh ? true : false,
             opacity: fadingMesh ? 0 : 1
         });
+        // 接缝镜像融合：接缝两侧 7° 内做镜像采样+平滑混合，背景边界过渡平缓（纯代码，无需改图）
+        material.onBeforeCompile = function(shader) {
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <map_fragment>',
+                [
+                    '#ifdef USE_MAP',
+                    'float q = fract(vUv.x);',
+                    'float dSeam = min(q, 1.0 - q);',
+                    'vec4 tA = texture2D(map, vec2(q, vUv.y));',
+                    'vec4 tR = texture2D(map, vec2(1.0 - q, vUv.y));',
+                    'float wSeam = 1.0 - smoothstep(0.0, 0.02, dSeam);',
+                    'vec4 texelColor = mix(tA, tR, wSeam);',
+                    'texelColor = mapTexelToLinear(texelColor);',
+                    'diffuseColor *= texelColor;',
+                    '#endif'
+                ].join('\n')
+            );
+        };
         sphereMesh = new THREE.Mesh(geometry, material);
         sphereMesh.rotation.y = -Math.PI / 2;
         sphereMesh.renderOrder = 2;
