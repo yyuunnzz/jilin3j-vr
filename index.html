@@ -122,7 +122,6 @@ html{-webkit-tap-highlight-color:transparent}
 .msub:hover rect{fill:rgba(139,69,19,0.55);stroke:#d4af37}
 .msub:hover text{fill:#ffe9a8}
 </style>
-<base target="_blank">
 </head>
 <body>
 <div id="canvas-container"></div>
@@ -1951,7 +1950,6 @@ function loadScene(key) {
         texture.generateMipmaps = false;
         texture.wrapS = THREE.RepeatWrapping;
         texture.repeat.x = -1;
-        texture.offset.x = 0.75;
         var geometry = new THREE.CylinderGeometry(50, 50, 157, 96, 1, true);
         var material = new THREE.MeshBasicMaterial({
             map: texture,
@@ -1960,6 +1958,7 @@ function loadScene(key) {
             opacity: fadingMesh ? 0 : 1
         });
         sphereMesh = new THREE.Mesh(geometry, material);
+        sphereMesh.rotation.y = -Math.PI / 2;
         sphereMesh.renderOrder = 2;
         if (fadingMesh) {
             // 淡入期间：新球后画、不写深度；旧球透明淡出
