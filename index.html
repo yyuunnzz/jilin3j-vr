@@ -1954,7 +1954,7 @@ function loadScene(key) {
         var material = new THREE.MeshBasicMaterial({
             map: texture,
             side: THREE.BackSide,
-            transparent: true,
+            transparent: fadingMesh ? true : false,
             opacity: fadingMesh ? 0 : 1
         });
         sphereMesh = new THREE.Mesh(geometry, material);
@@ -2017,6 +2017,7 @@ function createHotspots(hotspots) {
             depthTest: false
         });
         var sprite = new THREE.Sprite(material);
+        sprite.renderOrder = 3;
         sprite.position.set(x, y, z);
         sprite.scale.set(2.5, 2.5, 1);
         sprite.userData = h;
@@ -2146,6 +2147,7 @@ function animate() {
             fadingMesh.material.dispose();
             fadingMesh = null;
             sphereMesh.material.opacity = 1;
+            sphereMesh.material.transparent = false;
             sphereMesh.material.depthWrite = true;
             sphereMesh.renderOrder = 0;
         } else {
