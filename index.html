@@ -1522,6 +1522,7 @@ function init() {
             return;
         }
         scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x160f0a);
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 0, 0.1);
         renderer = new THREE.WebGLRenderer({antialias: true});
@@ -1950,7 +1951,8 @@ function loadScene(key) {
         texture.generateMipmaps = false;
         texture.wrapS = THREE.RepeatWrapping;
         texture.repeat.x = -1;
-        var geometry = new THREE.SphereGeometry(50, 64, 32);
+        texture.offset.x = 0.75;
+        var geometry = new THREE.CylinderGeometry(50, 50, 157, 96, 1, true);
         var material = new THREE.MeshBasicMaterial({
             map: texture,
             side: THREE.BackSide,
