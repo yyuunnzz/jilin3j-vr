@@ -80,7 +80,16 @@ body{font-family:"KaiTi","STKaiti","楷体","STSong","Songti SC","SimSun",serif;
 
 /* 残页碎片：散落为撕裂纸片，归位后撕边与投影移除，拼合无缝 */
 .pieces{position:absolute;inset:0;z-index:1;overflow:visible}
-.piece{position:absolute;width:84px;height:204px;overflow:hidden;cursor:pointer;transition:filter .5s ease;will-change:transform;filter:drop-shadow(0 6px 10px rgba(40,25,8,.45))}
+.piece{position:absolute;width:84px;height:204px;overflow:hidden;cursor:pointer;transition:filter .5s ease;will-change:transform;filter:drop-shadow(0 6px 10px rgba(40,25,8,.45));user-select:none;-webkit-user-select:none}
+/* [修改] 拖动优化：未归位碎片自身及内部所有文字/填空等子元素一律锁定触摸为拖动（touch-action 不会继承，
+   必须下放到子元素；否则手指落在碎片内文字上时浏览器仍会把该手势判为“页面滚动”抢先接管，
+   导致碎片只拖动一点点就被 touchcancel 弹回，同时页面跟着滚） */
+.piece:not(.done), .piece:not(.done) *{touch-action:none}
+/* [修改] 拖动确认后挂到 <html> 的整页滚动锁：从根源禁止浏览器把本次手势判为滚动（仅拖动期间存在，抬起即移除，不影响其它区域滚动） */
+html.drag-lock, html.drag-lock body{overflow:hidden;overscroll-behavior:none;touch-action:none}
+/* [新增] 移动端透明放大热区：与对应碎片同位置、同旋转，四周各扩 10px，视觉不变；桌面精确指针不启用，避免误抓相邻碎片 */
+.phit{position:absolute;width:104px;height:224px;z-index:2;display:none;touch-action:none}
+@media(pointer:coarse){.phit{display:block}}
 /* 碎片纸纹与整卷同源，按所在位置反向偏移，拼合后与卷面严丝合缝 */
 .piece::before{content:'';position:absolute;inset:0;z-index:0;background-image:linear-gradient(180deg,#f1e6c6,#e8d6ab 55%,#ddc492);background-size:240px 400px;background-repeat:no-repeat;background-position:var(--bgx,0) var(--bgy,0);transition:opacity .8s ease}
 .paper.revealed .piece::before{opacity:0}
@@ -220,6 +229,44 @@ body{font-family:"KaiTi","STKaiti","楷体","STSong","Songti SC","SimSun",serif;
 .card-panel h3{font-size:19px;font-weight:normal;letter-spacing:.3em;color:var(--red-dark);margin-bottom:10px}
 .card-panel canvas{width:100%;display:block;margin:10px 0 8px;border:1px solid rgba(120,80,25,.3)}
 .long-save{font-size:12px;letter-spacing:.2em;color:rgba(140,47,47,.75)}
+
+/* ========== [新增] 残卷史料笔记 · 侧滑面板 / 入口按钮 / 容错轻提示 ========== */
+.clue-doc{position:fixed;left:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:65;width:46px;height:46px;border-radius:50%;cursor:pointer;border:none;font-family:inherit;color:#f3e7c8;background:linear-gradient(180deg,#7a2323,#5d1a1a);border:1px solid #3d0f0f;box-shadow:inset 0 0 0 1px rgba(243,231,200,.28),0 3px 8px rgba(0,0,0,.45);font-size:19px;line-height:1;transition:opacity .25s,transform .25s}
+.clue-doc:active{transform:scale(.92)}
+.clue-doc .doc-badge{position:absolute;right:-5px;top:-7px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;font-size:11px;font-style:normal;line-height:18px;text-align:center;color:#4a1414;background:var(--gold);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.clue-doc.gone{opacity:0;pointer-events:none;transform:translateY(10px)}
+/* 答题阶段悬浮小按钮【查看线索】 */
+.clue-float{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:64;cursor:pointer;border:none;font-family:inherit;font-size:15px;letter-spacing:.12em;color:#4a1414;background:linear-gradient(180deg,#e9cf9a,#c9a25e);border:1px solid #8a6a2f;box-shadow:inset 0 0 0 1px rgba(255,246,220,.55),0 3px 10px rgba(0,0,0,.4);padding:11px 20px;border-radius:999px;animation:floatUp .5s .25s both,floatBob 2.6s .9s ease-in-out infinite}
+@keyframes floatUp{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes floatBob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-3px)}}
+.clue-float:active{transform:translate(-50%,1px) scale(.97)}
+/* 笔记面板（宣纸抽屉，从右侧滑入） */
+.notes-drawer{position:fixed;top:0;right:0;bottom:0;width:min(86vw,330px);z-index:66;display:flex;flex-direction:column;background:repeating-linear-gradient(0deg,rgba(120,80,25,.02) 0 2px,transparent 2px 9px),linear-gradient(180deg,#f6ead0,#e4cf9f);border-left:2px solid var(--red);box-shadow:-16px 0 44px rgba(0,0,0,.55);transform:translateX(104%);transition:transform .34s cubic-bezier(.2,.8,.3,1),visibility .34s;visibility:hidden}
+.notes-drawer.open{transform:none;visibility:visible}
+.notes-head{position:relative;flex:0 0 auto;padding:18px 42px 14px 16px;color:#f0e2bd;background:linear-gradient(180deg,#7a2323,#5d1a1a);box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.notes-head b{font-weight:normal;font-size:19px;letter-spacing:.28em}
+.notes-head .notes-sub{display:block;margin-top:6px;font-size:11px;letter-spacing:.18em;color:rgba(240,226,189,.6)}
+.notes-head::after{content:'卷';position:absolute;right:44px;top:11px;font-size:10px;color:rgba(184,150,78,.9);border:1px solid rgba(184,150,78,.7);padding:2px 4px;transform:rotate(8deg)}
+.notes-close{position:absolute;right:10px;top:10px;width:28px;height:28px;border-radius:50%;border:1px solid rgba(240,226,189,.5);background:rgba(240,226,189,.08);color:#f0e2bd;font-size:13px;line-height:1;cursor:pointer}
+.notes-close:active{background:rgba(240,226,189,.25)}
+.notes-body{flex:1;overflow-y:auto;padding:14px 12px 24px;-webkit-overflow-scrolling:touch}
+.notes-empty{margin:26px 6px;text-align:center;font-size:13px;line-height:2.1;letter-spacing:.1em;color:rgba(43,38,32,.55)}
+.note-level{margin-bottom:14px;background:rgba(120,80,25,.07);border:1px solid rgba(120,80,25,.3);box-shadow:0 2px 0 rgba(120,80,25,.16)}
+.note-level h4{display:flex;align-items:center;gap:8px;padding:9px 10px;font-weight:normal;font-size:15px;letter-spacing:.16em;color:#f3e7c8;background:linear-gradient(180deg,#7a2323,#5d1a1a)}
+.note-level h4 i{margin-left:auto;font-style:normal;font-size:10px;letter-spacing:.1em;color:#f0e2bd;border:1px solid rgba(240,226,189,.5);padding:1px 5px;transform:rotate(-4deg)}
+.note-level ul{list-style:none}
+.note-level li{padding:9px 10px 10px;border-top:1px dashed rgba(120,80,25,.3)}
+.note-level li b{display:block;margin-bottom:3px;font-weight:normal;font-size:12px;letter-spacing:.2em;color:var(--red-dark)}
+.note-level li p{font-size:13px;line-height:1.95;color:var(--ink);text-align:justify}
+/* 拼图完成线索弹窗：必点「我已阅读」关闭 + 已存笔记提示 + 长文滚动 */
+.modal-clue{max-height:86vh;display:flex;flex-direction:column}
+.modal-clue .note-body{flex:1;min-height:0;overflow-y:auto;max-height:none;-webkit-overflow-scrolling:touch}
+.note-saved{margin:0 2px 12px;padding:8px 10px;font-size:12.5px;line-height:1.8;letter-spacing:.05em;color:var(--red-dark);text-align:left;background:rgba(184,150,78,.16);border:1px dashed rgba(140,47,47,.45)}
+/* 答题页面顶部弱提示 */
+.clue-tip{margin-top:9px;text-align:center;font-size:12px;letter-spacing:.1em;color:rgba(240,226,189,.72);animation:fadeUp .5s .2s both}
+/* 容错轻提示（toast，不打断作答） */
+.toast{position:fixed;left:50%;top:17%;transform:translateX(-50%);z-index:70;max-width:86vw;padding:11px 18px;text-align:center;font-size:14px;line-height:1.7;letter-spacing:.06em;color:#ffe9b8;background:linear-gradient(180deg,#7a2323,#5d1a1a);border:1px solid var(--gold);box-shadow:0 10px 26px rgba(0,0,0,.5);cursor:pointer;border-radius:4px;font-family:inherit}
+.toast b{color:var(--gold);letter-spacing:.14em}
 </style>
 </head>
 <body>
@@ -231,7 +278,7 @@ body{font-family:"KaiTi","STKaiti","楷体","STSong","Songti SC","SimSun",serif;
     <div class="top-right">
       <button class="sound-btn" :class="{ off: !soundOn }" @click="toggleSound">音{{ soundOn ? '开' : '关' }}</button>
       <button class="reset-btn" @click="resetConfirm = true">重置进度</button>
-      <a class="back-btn" href="javascript:void(0)" onclick="backToHall()">返回展厅</a>
+      <a class="back-btn" href="../../index.html">返回首页</a>
     </div>
   </header>
 
@@ -255,10 +302,12 @@ body{font-family:"KaiTi","STKaiti","楷体","STSong","Songti SC","SimSun",serif;
       <span class="surface"></span>
     </div>
     <div class="pieces">
-        <div v-for="(p, i) in pieces" :key="i" class="piece"
+      <template v-for="(p, i) in pieces" :key="i">
+        <div class="piece"
           :class="{ done: p.done, glue: p.done, fake: p.fake, dragging: draggingIdx === i, bounce: bouncers[i], clean: p.clean, dusting: dustingIdx === i, pasted: p.pasted }"
           :style="pieceStyle(p)"
-          @pointerdown="onPieceDown(i, $event)">
+          @mousedown="onPieceDown(i, $event)"
+          @touchstart="onPieceDown(i, $event)">
           <div class="piece-inner" :style="innerStyle(p)">
             <p v-if="p.fake" class="book-text junk">{{ p.junk }}</p>
             <p v-else class="book-text">
@@ -275,6 +324,11 @@ body{font-family:"KaiTi","STKaiti","楷体","STSong","Songti SC","SimSun",serif;
           <span v-if="p.done && p.dusty && !p.clean" class="dust-mask"></span>
           <button v-if="p.done && p.dusty && !p.clean" class="dust-btn" @click.stop="dustPiece(i)">拂尘</button>
         </div>
+        <!-- [新增] 移动端透明放大热区（拖拽热区与碎片同步移动），桌面隐藏 -->
+        <i v-if="!p.done" class="phit" :style="hitStyle(p)"
+          @mousedown="onPieceDown(i, $event)"
+          @touchstart="onPieceDown(i, $event)"></i>
+      </template>
       </div>
   </div>
 </main>
@@ -286,6 +340,8 @@ body{font-family:"KaiTi","STKaiti","楷体","STSong","Songti SC","SimSun",serif;
   </div>
   <p class="hint-bar">{{ hintText }}</p>
   <p class="sub-hint">拖动碎片入拼接区复原 · 干扰残片请弃入废简篓</p>
+  <!-- [新增] 答题页面顶部弱提示：指向史料笔记 -->
+  <p v-if="answering" class="clue-tip">💡 线索可点击打开【残卷史料笔记】查阅。</p>
 
   <!-- 全通横幅：刷新后入口，而非自动弹窗 -->
   <div v-if="allDone && !showComplete" class="roam-banner" @click="showComplete = true">
@@ -345,21 +401,22 @@ body{font-family:"KaiTi","STKaiti","楷体","STSong","Songti SC","SimSun",serif;
       <canvas ref="cardCanvas" width="640" height="400" @pointerdown="cardHold" @pointerup="cardHoldClear" @pointerleave="cardHoldClear"></canvas>
       <p class="long-save">长按图片可保存纪念卡</p>
       <div class="btn-row">
-        <a class="btn btn-line" href="javascript:void(0)" onclick="backToHall()">返回展厅</a>
+        <a class="btn btn-line" href="../../index.html">返回展厅</a>
         <button class="btn btn-red" @click="confirmResult">{{ allDone || curIdx === LEVELS.length - 1 ? '完成' : '下一卷' }}</button>
       </div>
     </div>
   </div>
   </transition>
 
-  <!-- [新增] 段裱糊注解弹窗 -->
+  <!-- [修改] 段裱糊线索弹窗：不自动消失，必须点【我已阅读】关闭；遮罩点击不再关闭 -->
   <transition name="fade">
-  <div v-if="noteVisible" class="overlay" @click.self="closeNote">
-    <div class="modal">
+  <div v-if="noteVisible" class="overlay">
+    <div class="modal modal-clue">
       <h3>{{ current.name }} · 第{{ noteIdx + 1 }}段 · {{ current.sections[noteIdx].short }}</h3>
+      <p class="note-saved">📜 本次获取的史料线索已保存至【残卷史料笔记】，答题环节可以随时打开查阅。</p>
       <p class="note-body">{{ current.sections[noteIdx].note }}</p>
       <div class="btn-row">
-        <button class="btn btn-red" @click="closeNote">继续修复</button>
+        <button class="btn btn-red" @click="closeNote">我已阅读</button>
       </div>
     </div>
   </div>
@@ -374,7 +431,7 @@ body{font-family:"KaiTi","STKaiti","楷体","STSong","Songti SC","SimSun",serif;
       <p class="complete-sub">已解锁 <b>罗盘文脉探索</b> 玩法<br>后续内容 · 敬请期待</p>
       <div class="btn-row">
         <button class="btn btn-red" @click="restart">再游一关</button>
-        <a class="btn btn-line" href="javascript:void(0)" onclick="backToHall()">返回展厅</a>
+        <a class="btn btn-line" href="../../index.html">返回展厅</a>
       </div>
     </div>
   </div>
@@ -393,14 +450,38 @@ body{font-family:"KaiTi","STKaiti","楷体","STSong","Songti SC","SimSun",serif;
     </div>
   </div>
   </transition>
+
+  <!-- ===== [新增] 残卷史料笔记：入口按钮 + 答题悬浮按钮 + 右侧滑出面板 ===== -->
+  <button v-show="!answering && !resultVisible && !showComplete" class="clue-doc" @click="toggleNotes" aria-label="残卷史料笔记">📜<i v-if="notesTotal" class="doc-badge">{{ notesTotal }}</i></button>
+  <button v-if="answering" class="clue-float" @click="openNotes">📜 查看线索</button>
+
+  <aside class="notes-drawer" :class="{ open: notesOpen }">
+    <header class="notes-head">
+      <b>残卷史料笔记</b>
+      <span class="notes-sub">拼图所得线索 · 答题可随时查阅</span>
+      <button class="notes-close" @click="notesOpen = false" aria-label="收起笔记">✕</button>
+    </header>
+    <div class="notes-body">
+      <p v-if="!notes.list.length" class="notes-empty">尚未收录任何线索。<br>拼合残卷、每段完成后，该段史料注解将自动收入此卷笔记。</p>
+      <section v-for="lvl in notes.list" :key="lvl.lid" class="note-level">
+        <h4>第{{ ['壹','贰','叁'][lvl.lid - 1] || lvl.lid }}卷 · {{ lvl.name }}<i>{{ lvl.parts.length }} 条</i></h4>
+        <ul>
+          <li v-for="(pt, pi) in lvl.parts" :key="pi">
+            <b>{{ pt.short }}</b>
+            <p>{{ pt.note }}</p>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </aside>
+
+  <!-- 连续答错容错轻提示（toast，点击可直达笔记，不弹强弹窗） -->
+  <transition name="tip">
+  <button v-if="toastMsg" class="toast" @click="openNotes">{{ toastMsg }}</button>
+  </transition>
 </div>
 
 <script>
-/* ===== [端口] 返回展厅：iframe 内通知宿主关闭；独立打开时回退跳转首页 ===== */
-function backToHall() {
-  if (window.parent !== window) { window.parent.postMessage('closeGame', '*'); }
-  else { location.href = '../../index.html'; }
-}
 const { createApp, ref, reactive, computed, watch } = Vue;
 
 /* ===== 关卡数据（text 中 {1}{2} 对应 blanks 顺序） ===== */
@@ -457,6 +538,38 @@ function loadStore() {
 }
 const store = reactive(loadStore());
 function saveStore() { localStorage.setItem(STORE_KEY, JSON.stringify({ completed: store.completed, best: store.best })); }
+
+/* ===== [新增] 残卷史料笔记：localStorage 持久化；按「卷」聚合，同段线索去重更新 ===== */
+const NOTES_KEY = 'jl3j_notes_v1';
+function loadNotes() {
+  try { const d = JSON.parse(localStorage.getItem(NOTES_KEY)); return { list: (d && d.list) || [] }; }
+  catch { return { list: [] }; }
+}
+const notes = reactive(loadNotes());
+const notesOpen = ref(false);
+function saveNotes() { try { localStorage.setItem(NOTES_KEY, JSON.stringify({ list: notes.list })); } catch (e) {} }
+function upsertClue(lid, short, note) {
+  const lv = current && current.value; if (!lv) return;
+  let lvl = notes.list.find(x => x.lid === lid);
+  if (!lvl) { lvl = { lid: lid, name: lv.name, parts: [] }; notes.list.unshift(lvl); }
+  else { lvl.name = lv.name; }
+  const i = lvl.parts.findIndex(p => p.short === short);
+  if (i >= 0) { lvl.parts[i].note = note; }
+  else if (short === '卷宗全文注解') { lvl.parts.unshift({ short: short, note: note }); }
+  else { lvl.parts.push({ short: short, note: note }); }
+  saveNotes();
+}
+const notesTotal = computed(() => notes.list.reduce((s, l) => s + l.parts.length, 0));
+function toggleNotes() { notesOpen.value = !notesOpen.value; }
+function openNotes() { notesOpen.value = true; }
+/* 容错轻提示（toast 数秒后自动消失，不打断作答） */
+const toastMsg = ref('');
+let toastT = 0, wrongStreak = 0;
+function showToast(msg) {
+  toastMsg.value = msg;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { toastMsg.value = ''; }, 3200);
+}
 
 const rand = (a, b) => a + Math.random() * (b - a);
 function shuffle(arr) {
@@ -539,7 +652,8 @@ const resetConfirm = ref(false);   // [新增] 重置进度确认弹窗
 
 /* ===== [新增] 音效 / 拖拽 / 干扰片 / 拂尘 / 分段 / 回忆 / 结算 ===== */
 const soundOn = ref(true); let actx = null;
-const dragState = reactive({ i: -1, sx: 0, sy: 0, x: 0, y: 0, moved: false });
+const DRAG_TH = 8;   // [新增] 拖动判定阈值(px)：手指轻微晃动不立即进入拖动，位移超过后才判定为拖动（防误触）
+const dragState = reactive({ i: -1, sx: 0, sy: 0, x: 0, y: 0, moved: false, mode: '', tid: -1 });
 const draggingIdx = ref(-1);
 const bouncers = reactive({});
 const basketHot = ref(false);
@@ -596,6 +710,24 @@ const hintText = computed(() => {
   return current.value.blanks.every(b => filled[b.id]) ? '残卷修复完成' : '残卷已复原 · 点击虚框择词补全';
 });
 
+/* [新增] 答题环节判定：残卷已复原且尚有填空未完成（回忆题/线索弹窗打开时不算作答界面） */
+const answering = computed(() => {
+  if (!allPiecesDone.value) return false;
+  if (recall.visible || noteVisible.value) return false;
+  return !current.value.blanks.every(b => filled[b.id]);
+});
+
+/* [新增] 拼图（某段/整卷）完成后，把本次得到的线索写入残卷史料笔记 */
+function collectSegClue(si) {
+  const lv = current.value, sec = lv.sections[si];
+  if (!sec) return;
+  upsertClue(lv.id, sec.short, sec.note);
+}
+function collectFullClue() {
+  const lv = current.value;
+  upsertClue(lv.id, '卷宗全文注解', lv.annotation);
+}
+
 const stageState = (lv) => ({
   done: store.completed.includes(lv.id),
   unlocked: lv.id === 1 || store.completed.includes(lv.id - 1),
@@ -605,23 +737,23 @@ const stageState = (lv) => ({
 /* ===== 碎片：构建 / 样式 / 归位 ===== */
 function buildPieces() {
   pieces.length = 0;
-  tearTpl = buildTearTpl();          //  重新生成共享缺痕模板
+  tearTpl = buildTearTpl();          // [新增] 重新生成共享缺痕模板
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const i = r * COLS + c;
     const [bx, by] = SCATTER[i];
     pieces.push({
-      x: c * STEP_X, y: r * STEP_Y,   //  步进 78/196，相邻碎片重叠 6px/4px，铺满 240×400
+      x: c * STEP_X, y: r * STEP_Y,   // [修改] 步进 78/196，相邻碎片重叠 6px/4px，铺满 240×400
       dx: bx + rand(-10, 10), dy: by + rand(-9, 9),
       r: rand(-13, 13), done: false,
       seg: c,                 // 所属段：按列分（竖排从右向左，c2=段1,c1=段2,c0=段3）
       dusty: false, clean: false, pasted: false,
-      clip: tearClip(r, c)    //  相邻碎片共享缺痕
+      clip: tearClip(r, c)    // [新增] 相邻碎片共享缺痕
     });
   }
-  /*  拂尘：全卷仅随机 1-2 块真碎片带尘需拂尘，其余吸附直接锁定 */
+  /* [修改] 拂尘：全卷仅随机 1-2 块真碎片带尘需拂尘，其余吸附直接锁定 */
   const dustCount = 1 + Math.floor(Math.random() * 2);
   shuffle(pieces.filter(x => !x.fake)).slice(0, dustCount).forEach(p => { p.dusty = true; });
-  /*  干扰残片（FAKE_COUNT 块）：内容为杂字池乱序（本卷文字 + 干支纪年 + 千字文句 + 虚字，
+  /* [修改] 干扰残片（FAKE_COUNT 块）：内容为杂字池乱序（本卷文字 + 干支纪年 + 千字文句 + 虚字，
      仅作杂文质感，不作史料陈述），无匹配原位，只能弃入废简篓 */
   const junkChars = shuffle((current.value.text + '甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥' +
     '天地玄黄宇宙洪荒日月盈昃寒来暑往' + '一二三四五六七八九十百千万' + '之乎者也焉哉尔矣').replace(/[{}\d]/g, '').split('')).slice(0, 32).join('');
@@ -632,12 +764,12 @@ function buildPieces() {
       dx: F[k][0] + rand(-12, 12), dy: F[k][1] + rand(-10, 10),
       r: rand(-16, 16), done: false, fake: true, seg: -1,
       dusty: false, clean: false, pasted: false, junk: junkChars,
-      clip: fakeTearClip()   //  独立撕边，不与任何真碎片吻合
+      clip: fakeTearClip()   // [新增] 独立撕边，不与任何真碎片吻合
     });
   }
   fakesTotal.value = FAKE_COUNT; fakesCleared.value = 0; wrongDrops.value = 0;
 }
-/*  干扰片乱序文本（每次打乱，明确非史料原文） */
+/* [新增] 干扰片乱序文本（每次打乱，明确非史料原文） */
 function pieceStyle(p) {
   const i = pieces.indexOf(p);
   const isDrag = dragState.i === i;
@@ -647,7 +779,7 @@ function pieceStyle(p) {
   return {
     left: p.x + 'px', top: p.y + 'px',
     '--bgx': -p.x + 'px', '--bgy': -p.y + 'px',
-    clipPath: done ? 'none' : p.clip,   //  散落/拖动时显示缺痕，归位后撕边消失无缝拼合
+    clipPath: done ? 'none' : p.clip,   // [新增] 散落/拖动时显示缺痕，归位后撕边消失无缝拼合
     transform: done ? 'none' : 'translate(' + dx + 'px,' + dy + 'px) rotate(' + p.r + 'deg)',
     transition: done ? 'transform .6s cubic-bezier(.22,.7,.3,1)' : (isDrag ? 'none' : 'transform .25s ease'),
     zIndex: isDrag ? 30 : 1
@@ -662,48 +794,127 @@ function innerStyle(p) {
     transition: done ? 'transform .6s cubic-bezier(.22,.7,.3,1)' : 'none'
   };
 }
-/* =====  拖拽：pointer 事件驱动，松手判定落点 ===== */
+/* ===== [修改] 拖拽：同时支持 鼠标(mousedown/mousemove/mouseup) 与 触摸(touchstart/touchmove/touchend)。
+   触摸坐标统一取 touches/changedTouches（触摸事件对象上没有 clientX，直接复用鼠标取法会整块偏移）；
+   仅在碎片拖动时 preventDefault 阻止页面滚动（不做全局阻止，页面其它区域照常滑动）；
+   位移超过阈值才判定为拖动，避免轻晃误触；拖动中经 pieceStyle 把 z-index 抬到 30；
+   无论 mouseup / touchend / touchcancel 哪条路径抬起，都统一 endDrag 收尾清场，杜绝碎片粘在手指上拖不放。 */
 function onPieceDown(i, ev) {
   const p = pieces[i];
-  if (p.done) return;
-  dragState.i = i; dragState.moved = false;
-  dragState.sx = ev.clientX; dragState.sy = ev.clientY;
-  dragState.x = ev.clientX; dragState.y = ev.clientY;
-  draggingIdx.value = i;
-  window.addEventListener('pointermove', onDragMove);
-  window.addEventListener('pointerup', onDragUp, { once: true });
+  const isTouch = ev.type === 'touchstart';
+  if (!isTouch && ev.button !== 0) return;   // 鼠标仅响应左键
+  if (p.done) return;                        // 已归位碎片不再拖动（保留拂尘/填空的正常点击）
+  if (isTouch) ev.preventDefault();          // 只在碎片按下处锁定触摸、阻止滚动/手势，不影响页面其它区域
+  if (dragState.i >= 0) return;              // 已有碎片在拖：忽略第二指/二次按压，避免多指错乱
+  let cx, cy, tid = -1;
+  if (isTouch) {
+    const t = (ev.touches && ev.touches[0]) || (ev.changedTouches && ev.changedTouches[0]);
+    if (!t) return;
+    cx = t.clientX; cy = t.clientY; tid = t.identifier;
+  } else {
+    cx = ev.clientX; cy = ev.clientY;
+  }
+  dragState.i = i; dragState.mode = isTouch ? 'touch' : 'mouse'; dragState.tid = tid;
+  dragState.moved = false;
+  dragState.sx = cx; dragState.sy = cy;
+  dragState.x = cx; dragState.y = cy;
+  draggingIdx.value = i;                     // 选中即抬升（pieceStyle 中 zIndex 30 → 浮于最上层）
+  if (isTouch) {
+    // [修改] 触摸监听挂 document 并走捕获(capture)阶段：先于浏览器判定滚动手势拦截，
+    //   且全程 passive:false，preventDefault 一定生效（此前挂 window 时首帧移动可能已被浏览器判为滚动接管）
+    document.addEventListener('touchmove', onDragMove, { passive: false, capture: true });
+    document.addEventListener('touchend', onDragUp, { capture: true });
+    document.addEventListener('touchcancel', onDragUp, { capture: true });
+  } else {
+    window.addEventListener('mousemove', onDragMove);
+    window.addEventListener('mouseup', onDragUp);
+  }
 }
 function onDragMove(ev) {
   if (dragState.i < 0) return;
-  if (!dragState.moved && Math.hypot(ev.clientX - dragState.sx, ev.clientY - dragState.sy) > 8) dragState.moved = true;
-  if (dragState.moved) {
-    dragState.x = ev.clientX; dragState.y = ev.clientY;
-    const br = document.querySelector('.basket').getBoundingClientRect();
-    basketHot.value = ev.clientX > br.left - 10 && ev.clientX < br.right + 10 && ev.clientY > br.top - 10 && ev.clientY < br.bottom + 10;
+  const isTouch = ev.type === 'touchmove';
+  if (isTouch !== (dragState.mode === 'touch')) return;   // 只处理当前模式的事件
+  let cx, cy;
+  if (isTouch) {
+    const ts = ev.touches;
+    let t = null;                                          // 触摸坐标必须取 touches 中正在拖的那根手指
+    for (let k = 0; k < ts.length; k++) if (ts[k].identifier === dragState.tid) { t = ts[k]; break; }
+    if (!t) t = ts[0];
+    if (!t) return;                                        // 手指已抬起：交给随后的 touchend 收尾
+    cx = t.clientX; cy = t.clientY;
+    if (ev.cancelable) ev.preventDefault();                // 拖动过程中阻止页面跟随手指上下滚动
+  } else {
+    cx = ev.clientX; cy = ev.clientY;
   }
+  if (!dragState.moved && Math.hypot(cx - dragState.sx, cy - dragState.sy) <= DRAG_TH) return;  // 阈值内不跟手，防误触
+  dragState.x = cx; dragState.y = cy;                      // 首次过阈值即吸附到当前指位，拖动全程跟手
+  if (!dragState.moved) {
+    dragState.moved = true;
+    // [修改] 真正进入拖动才挂整页滚动锁（html.drag-lock → overflow:hidden），
+    //   从根上禁止浏览器把手势判成页面滚动；未过阈值/单纯点按不锁，不影响页面其它区域正常滑动
+    document.documentElement.classList.add('drag-lock');
+  }
+  const br = document.querySelector('.basket').getBoundingClientRect();
+  basketHot.value = cx > br.left - 10 && cx < br.right + 10 && cy > br.top - 10 && cy < br.bottom + 10;
 }
 function onDragUp(ev) {
+  const isTouch = ev.type !== 'mouseup';
+  if (isTouch !== (dragState.mode === 'touch')) return;    // 忽略非本模式事件（鼠标/第二指混入时不影响当前拖动）
   const i = dragState.i; const p = i >= 0 ? pieces[i] : null;
-  dragState.i = -1; draggingIdx.value = -1;
-  window.removeEventListener('pointermove', onDragMove);
+  const moved = dragState.moved;
+  const cancelled = ev.type === 'touchcancel';             // 系统中断触摸：不判定落点，仅安全回弹
+  let cx = dragState.x, cy = dragState.y;                  // 兜底沿用最后坐标，避免收尾丢坐标导致定位错乱
+  if (ev.type === 'touchend') {
+    let found = false;
+    const cs = ev.changedTouches;
+    for (let k = 0; k < cs.length; k++) {
+      if (cs[k].identifier === dragState.tid) { found = true; cx = cs[k].clientX; cy = cs[k].clientY; break; }
+    }
+    if (!found) return;                                    // 抬起的不是正在拖的那根手指：继续保持拖动
+  } else if (ev.type === 'mouseup') {
+    cx = ev.clientX; cy = ev.clientY;
+  }
+  endDrag();
   if (!p) return;
-  if (!dragState.moved) { bounce(p); return; }  // [修改] 单击不归位：须拖动到拼接区附近松手
+  if (!moved || cancelled) { bounce(p); return; }          // 单击（未过阈值）或系统中断：抖动回弹，不落点
   const br = document.querySelector('.basket').getBoundingClientRect();
-  const inBasket = ev.clientX > br.left - 10 && ev.clientX < br.right + 10 && ev.clientY > br.top - 10 && ev.clientY < br.bottom + 10;
+  const inBasket = cx > br.left - 10 && cx < br.right + 10 && cy > br.top - 10 && cy < br.bottom + 10;
   if (inBasket) { p.fake ? discardFake(p) : (bounce(p), sfx('err')); return; }
   const pr = document.querySelector('.paper').getBoundingClientRect();
-  const inPaper = ev.clientX > pr.left && ev.clientX < pr.right && ev.clientY > pr.top && ev.clientY < pr.bottom;
+  const inPaper = cx > pr.left && cx < pr.right && cy > pr.top && cy < pr.bottom;
   if (inPaper) {
-    if (p.fake) { bounce(p); wrongDrops.value++; sfx('err'); }  //  干扰片入拼接区：抖动回弹
+    if (p.fake) { bounce(p); wrongDrops.value++; sfx('err'); }  // 干扰片入拼接区：抖动回弹
     else placePiece(p);
     return;
   }
   bounce(p);
 }
+/* [修改] 统一收尾：清掉全部模式监听、整页滚动锁与状态（mouseup / touchend / touchcancel 共用），杜绝拖动残留"粘手" */
+function endDrag() {
+  window.removeEventListener('mousemove', onDragMove);
+  window.removeEventListener('mouseup', onDragUp);
+  document.removeEventListener('touchmove', onDragMove, { capture: true });
+  document.removeEventListener('touchend', onDragUp, { capture: true });
+  document.removeEventListener('touchcancel', onDragUp, { capture: true });
+  document.documentElement.classList.remove('drag-lock');
+  dragState.i = -1; dragState.moved = false; dragState.mode = ''; dragState.tid = -1;
+  draggingIdx.value = -1; basketHot.value = false;
+}
+function hitStyle(p) {                                       // [新增] 移动端放大热区与碎片完全同步的定位样式
+  const i = pieces.indexOf(p);
+  const isDrag = dragState.i === i;
+  const dx = isDrag ? dragState.x - dragState.sx + p.dx : p.dx;
+  const dy = isDrag ? dragState.y - dragState.sy + p.dy : p.dy;
+  return {
+    left: (p.x - 10) + 'px', top: (p.y - 10) + 'px',         // 四周各外扩 10px（视觉不变）
+    transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(' + p.r + 'deg)',
+    transition: isDrag ? 'none' : 'transform .25s ease'
+  };
+}
 function bounce(p) { const i = pieces.indexOf(p); bouncers[i] = true; setTimeout(() => { delete bouncers[i]; }, 520); }
 function discardFake(p) { pieces.splice(pieces.indexOf(p), 1); fakesCleared.value++; sfx('basket'); }
 
-/*  归位：吸附即锁定（带尘片由 buildPieces 预选，全卷仅 1-2 片）+ 分段完成 → 裱糊动画 → 段注解弹窗 */
+/* [修改] 归位：吸附即锁定（带尘片由 buildPieces 预选，全卷仅 1-2 片）+ 分段完成 → 裱糊动画 → 段注解弹窗 */
 function placePiece(p) {
   if (p.done) return;
   p.done = true;
@@ -716,17 +927,21 @@ function checkSegment() {
     if (segDoneSet[si]) continue;
     if (segDone(si)) {
       segDoneSet[si] = true;
+      collectSegClue(si);                                    // [新增] 该段线索写入史料笔记
       segPieces(si).forEach(x => { x.pasted = true; });
       pasting.value = true; sfx('paste');
       setTimeout(() => { pasting.value = false; }, 1500);
       setTimeout(() => { if (!noteVisible.value) { noteIdx.value = si; noteVisible.value = true; } }, 1100);
     }
   }
-  if (segDoneCount.value === n) { setTimeout(() => { revealed.value = true; }, 900); }
+  if (segDoneCount.value === n) {
+    if (current.value.sections.length > 1) collectFullClue();   // [新增] 分多段的卷，整卷复原后再收录完整注解
+    setTimeout(() => { revealed.value = true; }, 900);
+  }
 }
 function closeNote() { noteVisible.value = false; }
 
-/*  拂尘：点击动画锁定碎片（尘除字显） */
+/* [新增] 拂尘：点击动画锁定碎片（尘除字显） */
 function dustPiece(i) {
   const p = pieces[i];
   if (!p.done || p.clean) return;
@@ -744,6 +959,7 @@ function openBlank(id) {
 function pick(opt) {
   const b = current.value.blanks.find(x => x.id === picker.blankId);
   if (opt === b.answer) {
+    wrongStreak = 0;                      // [新增] 答对清零连错计数
     filled[b.id] = opt;               // 答对：填入文字 + 墨迹动画
     picker.tip = ''; picker.visible = false;
     quizTotal.value++; quizRight.value++; sfx('ok');
@@ -756,11 +972,13 @@ function pick(opt) {
     picker.tip = n === 1 ? '字形有误，可回看原文再择' : '仍非本字，可回看原文再择';
     shaking.value = true;
     setTimeout(() => (shaking.value = false), 500);
+    wrongStreak++;                        // [新增] 连续答错2次 → 轻提示查阅笔记
+    if (wrongStreak >= 2) { wrongStreak = 0; showToast('连续答错两次 · 请打开【残卷史料笔记】获取线索'); }
   }
 }
 function closePicker() { picker.visible = false; }
 
-/*  碎片回忆题：缺字出自本卷复原文本，答错可回看原文重答（不关闭弹窗） */
+/* [新增] 碎片回忆题：缺字出自本卷复原文本，答错可回看原文重答（不关闭弹窗） */
 function openRecall() {
   const r = current.value.recall;
   if (!r) { finishLevel(); return; }
@@ -772,17 +990,20 @@ function openRecall() {
 }
 function pickRecall(opt) {
   if (opt === recall.answer) {
+    wrongStreak = 0;                      // [新增] 答对清零连错计数
     recall.visible = false;
     quizTotal.value++; quizRight.value++; sfx('ok');
     finishLevel();
   } else {
     quizTotal.value++; quizWrong++; sfx('err');
     recall.failed = true; recall.review = true;  // 温和：直接展示原文，可继续重选
+    wrongStreak++;                        // [新增] 回忆题也计入连错，达到2次轻提示查阅笔记
+    if (wrongStreak >= 2) { wrongStreak = 0; showToast('连续答错两次 · 请打开【残卷史料笔记】获取线索'); }
   }
 }
 function closeRecall() { recall.visible = false; }
 
-/*  全部填空+回忆完成：整卷柔光焕新 → 结算纪念卡 */
+/* [新增] 全部填空+回忆完成：整卷柔光焕新 → 结算纪念卡 */
 function finishLevel() {
   setTimeout(() => {
     glowing.value = true;
@@ -820,14 +1041,14 @@ function resetLevel() {
   Object.keys(segDoneSet).forEach(k => delete segDoneSet[k]);
   revealed.value = false; pasting.value = false;
   noteVisible.value = false; recall.visible = false;
-  dragState.i = -1; draggingIdx.value = -1; basketHot.value = false;
+  endDrag();                            // [修改] 统一收尾：清监听 + 解除整页滚动锁 + 复位拖拽状态
   picker.visible = false; picker.tip = '';
   resultVisible.value = false;
   shaking.value = false; glowing.value = false;
   startTimer();
 }
 function restart() { showComplete.value = false; curIdx.value = 0; resetLevel(); }
-/*  重置全部进度：清空通关与最佳纪录，回第 1 关重新开始 */
+/* [新增] 重置全部进度：清空通关与最佳纪录，回第 1 关重新开始 */
 function resetProgress() {
   store.completed.splice(0, store.completed.length);
   Object.keys(store.best).forEach(k => { delete store.best[k]; });
@@ -838,7 +1059,7 @@ function resetProgress() {
   resetConfirm.value = false;
 }
 
-/* =====  计时 / 音效 / 纪念卡 ===== */
+/* ===== [新增] 计时 / 音效 / 纪念卡 ===== */
 function startTimer() {
   elapsed.value = 0;
   clearInterval(timerId);
@@ -908,10 +1129,11 @@ showComplete.value = false; // 刷新不自动弹通关页，由横幅入口进�
 createApp({
   setup() {
     return { LEVELS, curIdx, current, segments, pieces, filled, picker, penalty, revealed, shaking, glowing, resultVisible, showComplete, allDone, allPiecesDone, score, grade, gradeClass, hintText, stageState, pieceStyle, innerStyle, openBlank, pick, closePicker, confirmResult, goLevel, restart, resetConfirm, resetProgress,
-      soundOn, toggleSound, onPieceDown, draggingIdx, bouncers, basketHot, dustPiece, dustingIdx, pasting,
+      soundOn, toggleSound, onPieceDown, hitStyle, draggingIdx, bouncers, basketHot, dustPiece, dustingIdx, pasting,
       noteVisible, noteIdx, closeNote, segDone, recall, pickRecall, closeRecall,
       fakesCleared, fakesTotal, quizRight, quizTotal, elapsed, fmtTime, dustedCount, closeResult,
-      cardCanvas, cardHold, cardHoldClear };
+      cardCanvas, cardHold, cardHoldClear,
+      notes, notesOpen, notesTotal, toggleNotes, openNotes, answering, toastMsg };
   }
 }).mount('#app');
 </script>
