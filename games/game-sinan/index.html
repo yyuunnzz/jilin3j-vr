@@ -28,8 +28,10 @@
         }
         html, body {
             margin: 0;
-            height: 100%;
-            overflow: hidden;
+            min-height: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         body {
             color: var(--ink-warm);
@@ -39,7 +41,7 @@
             linear-gradient(135deg, #e8dfc9 0%, #c6d8d1 100%);
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
         }
         body::before {
             content: "";
@@ -68,12 +70,11 @@
         }
         .app {
             width: min(96vw, 520px);
-            max-height: 98vh;
             margin: 0 auto;
             padding: 10px;
             position: relative;
             z-index: 1;
-            overflow: hidden;
+            overflow: visible;
         }
         .topbar {
             min-height: 62px;
@@ -141,9 +142,8 @@
         }
         .game-panel {
             min-height: unset;
-            max-height: calc(94vh - 110px);
             padding: 14px;
-            overflow: hidden;
+            overflow: visible;
         }
         .chapter-head {
             display: flex;
@@ -673,6 +673,7 @@
             transform: translate(-50%, 0);
         }
     </style>
+<base target="_blank">
 </head>
 <body>
 <!-- 新手指引 -->
